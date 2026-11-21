@@ -53,25 +53,28 @@ private val scale: Float
 get() = (pitchPx / resources.displayMetrics.density / BASE_ROW_PITCH_DP)
 .coerceIn(0.6f, 1.25f)
 
-/** Key gap (all four sides): 4dp at reference pitch, scaled with it. */
+/** Half of the visible key gap (Doubao 44:8): the visible gap between
+* two keys is 2 x gapPx = rowPitch x 8/52, so at the 52dp pitch the gap
+* is 8dp and the key is 44dp, exactly Doubao skin numbers (key 44 +
+* gap 8 = 52 per row). Doubao own horizontal margin is 2.5dp a side
+* (5dp gap); ours is never smaller than that. */
 private val gapPx: Int
-get() = (context.dp(4f) * scale).toInt().coerceAtLeast(context.dp(2f))
+get() = ((pitchPx * 4f / 52f) + 0.5f).toInt().coerceAtLeast(context.dp(2f))
 private val keyGap: Int get() = gapPx * 2
 
-/** QWERTY key height: natural size, 0.80 x rowPitch (the v1.2.5 / Qwen
-* tier) -- NOT stretched to fill the row. The panel total stays the
-* 5-row T9 height; the leftover vertical space is air. */
+/** QWERTY key height: Doubao ratio 44/52 x rowPitch (key 44 + gap 8 =
+* 52 per row at the 52dp pitch). The panel total is 4 rows, one row
+* shorter than the 5-row T9 page. */
 private val qwertyKeyHeightPx: Int
     get() = (rowPitch * QWERTY_KEY_HEIGHT_FACTOR).toInt()
 
-/** QWERTY vertical gap: one of five equal vertical whitespaces on the
-* English page (top edge, three between rows, bottom edge). The formula
-* counts the view's own top/bottom padding, so top edge + top gap view,
-* each between-rows gap view, and bottom edge + bottom gap view are all
-* the same size. Horizontal gaps stay the shared gapPx: left edge,
-* between keys and right edge are all 2 x gapPx. */
+/** QWERTY vertical gap: the Doubao gap, same as the T9 gap (keyGap =
+* rowPitch x 8/52; 8dp at the 52dp pitch). Between rows it is one gap
+* view; top/bottom edges are gap view minus the view own padding, so
+* every vertical whitespace on this page is the same size. Horizontal
+* gaps are 2 x gapPx, the same value. */
 private val qwertyVGapPx: Int
-    get() = (4 * qwertyRowPitch - 4 * qwertyKeyHeightPx + paddingTop + paddingBottom) / 5
+    get() = keyGap
 
 // Visible key height. The row pitch adds the vertical gap (top + bottom
 // key margins), so the panel height is rows x (keyHeight + keyGap).
@@ -93,17 +96,14 @@ private val smallTextSizeSp: Float get() = 15f * scale
 val panelHeightPx: Int
 get() = paddingTop + paddingBottom + 5 * rowPitch
 
-/** QWERTY row pitch: the 4 English rows share the 5-row T9 panel
-* height, so both pages are exactly as tall at the same Settings
-* height (5 x rowPitch spread over 4 rows). The keys do NOT stretch
-* to fill the row: they keep their natural height (see
-* qwertyKeyHeightPx) and sit at their natural height, the leftover split into five
-* equal vertical gaps (see qwertyVGapPx) */
-private val qwertyRowPitch: Int get() = (5 * rowPitch) / 4
+/** QWERTY row pitch: one row pitch per row, same pitch as T9. The 4
+* English rows total 4 x rowPitch, exactly one row shorter than the
+* 5-row T9 page (Doubao does the same). The keys keep their natural
+* height (see qwertyKeyHeightPx), never stretched to fill. */
+private val qwertyRowPitch: Int get() = rowPitch
 
-/** Height of the page currently shown: QWERTY and T9 pages are the
-* same height (4 x qwertyRowPitch == 5 x rowPitch); symbols keep the
-* 5-row height. */
+/** Height of the page currently shown: QWERTY is 4 rows (one row
+* shorter than T9 5); symbols keep the 5-row height. */
 val currentPanelHeightPx: Int
 get() = paddingTop + paddingBottom +
 if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
@@ -116,10 +116,8 @@ const val MAX_ROW_PITCH_DP = 72f
 /** Reference pitch: every size below is defined at 62dp and scaled
 * from it, so the keyboard keeps its proportions at any setting. */
 private const val BASE_ROW_PITCH_DP = 62f
-    /** QWERTY key-height factor: natural key height is 0.80 x rowPitch
-    * (the v1.2.5 / Qwen tier). The panel total is NOT scaled -- it stays
-    * the full 5-row T9 height; the leftover is vertical air. */
-    private const val QWERTY_KEY_HEIGHT_FACTOR = 0.80f
+    /** QWERTY key-height factor: Doubao ratio, key 44 of a 52 row pitch. */
+    private const val QWERTY_KEY_HEIGHT_FACTOR = 44f / 52f
 }
 
 /** Current row pitch in dp, for the Settings panel label. */
@@ -220,22 +218,19 @@ weights = floatArrayOf(1f, 2f, 1f)
 )
 }
 
-/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows
-* sharing the 5-row T9 panel height, so the whole panel tracks the
-* Settings height (see currentPanelHeightPx). Gboard
-* layout: 10 / 9 / 7 letters, then the bottom row. Shift opens
-* the z row and delete closes it, both about two letter keys wide so
-* the row is not cramped; the bottom row is lang / symbol / space /
-* enter with uniform non-space widths. */
+/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows,
+* one row shorter than the 5-row T9 page (Doubao style: key 44 + gap 8
+* = 52 per row, total 4 x rowPitch). Gboard layout: 10 / 9 / 7 letters,
+* then the bottom row. Shift opens the z row and delete closes it, both
+* about two letter keys wide so the row is not cramped; the bottom row
+* is lang / symbol / space / enter with uniform non-space widths. */
 fun showQwerty() {
 removeAllViews()
 showingSymbols = false
 showingQwerty = true
 val upper = qwertyShift || qwertyCaps
-// Natural key height; the leftover vertical space is split into five
-// equal gaps (top edge, between rows, bottom edge), each counting the
-// view's own top/bottom padding, so every vertical whitespace on this
-// page is the same size. Keys are not stretched to fill the panel.
+// Doubao 44:8 -- key 44/52 x rowPitch, gap 8/52 x rowPitch, total
+// 4 x rowPitch, one row shorter than T9. Keys are not stretched.
 val h = qwertyKeyHeightPx
 val g = qwertyVGapPx
 fun letter(ch: Char): TextView {

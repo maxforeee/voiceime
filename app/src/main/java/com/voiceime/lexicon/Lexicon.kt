@@ -269,8 +269,8 @@ class Lexicon(private val context: Context) : CandidateProvider {
         private const val TOP_N = 50
         private const val MAX_TAPS = 1000
         private val FIRST_LETTER = mapOf(
-            '2' to 'a', '3' to 'd', '4' to 'g', '5' to 'j',
-            '6' to 'm', '7' to 'p', '8' to 't', '9' to 'w'
+            '2' to "a", '3' to "d", '4' to "g", '5' to "j",
+            '6' to "m", '7' to "p", '8' to "t", '9' to "w"
         )
     }
 }

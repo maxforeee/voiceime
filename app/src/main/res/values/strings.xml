@@ -3,5 +3,18 @@
     <string name="app_name">语音输入法</string>
     <string name="subtype_label">中文（九宫格）</string>
     <string name="toggle_desc">切换键盘 / 语音</string>
-    <string name="voice_coming_soon">语音键盘即将接入</string>
+    <string name="mic_desc">麦克风：按住说话或点一下开始</string>
+
+    <string name="voice_hint_idle">按住说话，或点一下开始</string>
+    <string name="voice_listening_hold">录音中 · 松手结束</string>
+    <string name="voice_listening_tap">录音中 · 再点一下结束</string>
+    <string name="voice_connecting">正在连接语音服务…</string>
+    <string name="voice_processing">识别中…</string>
+    <string name="voice_done">已上屏</string>
+    <string name="voice_not_configured">语音未配置：构建时缺少 API Key。打字功能不受影响。</string>
+    <string name="voice_no_network">网络不可用，语音识别需要联网</string>
+    <string name="voice_need_permission">需要麦克风权限，请在弹窗中允许后再试</string>
+    <string name="voice_timeout">识别超时，请重试</string>
+    <string name="voice_back_keyboard">键盘</string>
+    <string name="voice_edit_reserved">修改 · v2 即将推出</string>
 </resources>

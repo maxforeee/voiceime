@@ -1,0 +1,686 @@
+
+─── app/src/main/java/com/voiceime/clipboard/ClipboardHistory.kt:21-21 ───
+[bug · low] The persisted list is never bounded when loading. If the SharedPreferences value was
+written by an older version / another writer with more than MAX_ITEMS entries, `items` is loaded
+unbounded and `add()` only trims one-by-one afterwards. Cap the list during load to the same limit.
+
+
+
+─── app/src/main/java/com/voiceime/clipboard/ClipboardHistory.kt:31-32 ───
+[bug · medium] `add()` and `clear()` mutate the in-memory `items` list and persist it with no
+synchronization, while `all()` can be read concurrently from another thread (e.g. clipboard listener
+thread vs. UI thread rendering the history). Concurrent `ArrayList` mutation during
+iteration/`ArrayList(items)` copy can throw `ConcurrentModificationException` or produce torn state.
+Consider guarding the state with `@Synchronized` (or a lock) for `add`/`clear`/`persist`/`all`.
+
+
+
+─── app/src/main/java/com/voiceime/clipboard/ClipboardHistory.kt:23-25 ───
+[maintainability · low] Multiple nested editors are not needed; also `apply()` is asynchronous — if
+the process is killed right after `add()`, the write may be lost. For a small string payload this is
+acceptable, but note that `commit()` would guarantee durability. More importantly, the exception is
+swallowed silently in `init`; at minimum log it for diagnosability (avoid empty catch).
+
+
+
+─── app/src/main/java/com/voiceime/PermissionActivity.kt:36-37 ───
+[bug · low] Index safety / dead-path: the result callback is delivered for every request code this
+Activity issues, and `grantResults` may be empty when the dialog is cancelled. There's no
+`requestCode == REQ_RECORD_AUDIO` check, so `REQ_RECORD_AUDIO` is effectively never read (dead
+constant) and the activity finishes unconditionally — including for unrelated results. Also, if the
+permission is already granted, `onCreate` calls `finish()` and `requestPermissions` is never called,
+yet the callback structure still assumes a result. Guard the result on `requestCode` so the constant
+is actually used and the finish logic is correct.
+
+          super.onRequestPermissionsResult(requestCode, permissions, grantResults)
++         if (requestCode == REQ_RECORD_AUDIO) {
+-         finish()
++             finish()
++         }
+
+
+─── app/src/main/java/com/voiceime/PermissionActivity.kt:20-25 ───
+[bug · medium] Robustness: if the user permanently denies RECORD_AUDIO (or a policy blocks it),
+`requestPermissions` returns immediately without showing a dialog, and the activity stays alive as a
+translucent window until the callback fires. Additionally, on some OEMs the callback can be delayed,
+leaving an invisible activity in the foreground over the IME. Consider adding a defensive
+`onStop`/timeout `finish()` path, or at minimum verify the activity always terminates. This is a
+behavioral/lifecycle concern worth confirming rather than a hard compile error.
+
+
+
+─── app/src/main/java/com/voiceime/asr/AsrProtocol.kt:88-90 ───
+[bug · high] Server error frames (msgType 0x0F) may also carry a binary `payload` when the
+serialization/compression flags indicate so, and in the error-frame branch `seq` is never parsed.
+More importantly, in the error branch `isLast` is hardcoded to `false`, so a terminating error frame
+will never finalize the ASR session in the client (`DoubaoAsrClient` only calls `onFinal` when
+`isLast` is true and otherwise early-returns on `errorCode`). Please verify against the
+harness/Volcano spec whether the error frame should also mark termination, and propagate `flags and
+0x02 != 0` in that branch as well.
+
+
+
+─── app/src/main/java/com/voiceime/asr/AsrProtocol.kt:80-82 ───
+[bug · medium] Fixed-offset integer reads use `ByteBuffer.wrap(data, off, 4).int`, which is correct,
+but the payload-size check only guards `data.size`; a `size` of exactly `data.size - off` is fine.
+However, no upper bound is applied before allocating/copying: a malformed/compressed payload
+declaring a huge `size` within the array bounds is still bounded, so this is safe. The real gap is
+that the `compress` value other than 0/1 is silently ignored, and a compressed payload larger than
+the socket buffer is expanded unbounded by GZIPInputStream, which can be a zip-bomb memory hazard.
+Consider capping the decompressed size (e.g., via a bounded `copyTo` limit) before materializing it.
+
+
+
+─── app/src/main/java/com/voiceime/asr/AsrProtocol.kt:95-95 ───
+[maintainability · low] `resp` text extraction uses `optString("text", null)`. That overload returns
+the string `"null"` for JSON null values in some org.json implementations, and it silently swallows
+only exceptions. Prefer `if (result.has("text") && !result.isNull("text")) result.getString("text")
+else null` to avoid literal "null" being displayed in the IME.
+
+
+
+─── app/src/main/java/com/voiceime/asr/AudioCapture.kt:56-57 ───
+[bug · high] Race between `stop()` and the capture thread: `stop()` sets `running = false` and joins
+with a 600 ms timeout. The thread may be inside `r.read()` when the timeout expires, then return a
+positive `n` (or be mid-iteration of the `while`) and invoke `onChunk(buf, n)` **after** `stop()`
+has returned. The caller (`stopRecording()`) then immediately sends the `last = true` packet after
+`capture?.stop()`, so a chunk can be sent on the websocket after the final packet, corrupting the
+stream ordering. Re-check `running` right before delivering the chunk (and note `n < 0` on a stopped
+recorder triggers a spurious "录音读取失败" error callback during normal shutdown). Consider gating the
+callback:
+```kotlin
+if (n > 0) {
+    if (running) onChunk(buf, n)
+} else if (n < 0) {
+    if (running) { onError("录音读取失败"); break }
+}
+```
+
+
+
+─── app/src/main/java/com/voiceime/asr/AudioCapture.kt:45-47 ───
+[bug · medium] Weak memory visibility for `record` and `thread`: `start()` assigns these fields on
+the caller thread while the capture thread and `stop()` (possibly on another thread) read them
+without synchronization. The `record` read on the capture thread and the
+`record?.stop()`/`record?.release()` path in `stop()` are not `@Volatile`, so a `stop()` racing with
+`start()` can observe a stale `null` and leak the `AudioRecord` (mic never released). Make `record`
+and `thread` `@Volatile` (as `running` already is) to guarantee visibility.
+
+
+
+─── app/src/main/java/com/voiceime/asr/AudioCapture.kt:68-71 ───
+[bug · medium] In the generic `catch` path, if the exception is thrown after `record = r` / `r` was
+created (e.g., `r.startRecording()` on a released/dead recorder, or `Thread.start()` failing), the
+`AudioRecord` is never released and `running` may be left `true`, leaking the microphone. Release
+`r` and reset `running` in the catch block:
+```kotlin
+} catch (e: Exception) {
+    running = false
+    runCatching { record?.release() }
+    record = null
+    onError("录音启动失败")
+    false
+}
+
+
+
+─── app/src/main/java/com/voiceime/Candidate.kt:14-14 ───
+[performance · medium] The only implementation (`Lexicon.lookup`) performs synchronous SQLite I/O
+(`rawQuery`, blob decoding) and is invoked directly from the input path (`VoiceImeService` line
+~611, ~643) on every keypress. Declaring the contract as a plain blocking function makes it easy for
+callers to block the IME's main thread and cause jank/ANR.
+
+Consider making the contract explicit so it cannot silently be called on the UI thread (and hit
+StrictMode/ANR):
+- either document it as `@WorkerThread`-only / suspend (`suspend fun lookup(digits: String):
+CandidateResult`) and call it from `Dispatchers.IO` with structured concurrency, or
+- keep it blocking but annotate `@WorkerThread` and add a main-thread guard assertion.
+
+
+
+─── app/src/main/java/com/voiceime/Candidate.kt:17-18 ───
+[bug · low] Potential behavior bug: `CandidateProvider.pinyinFor` defaults to returning the raw
+digit string, and callers use `candidateProvider?.pinyinFor(d) ?: d`. If a provider intentionally
+returns `digits` when no pinyin mapping exists, the caller cannot distinguish "converted pinyin"
+from "no mapping" and will send raw digits to the online suggestion endpoint, mixing T9 digits and
+pinyin letters in one query.
+
+Prefer an explicit signal, e.g. return a nullable `String?` (null = no reading available) so callers
+can fall back consistently, instead of overloading the digits value as a sentinel.
+
+
+
+─── app/src/main/java/com/voiceime/asr/DoubaoAsrClient.kt:76-77 ───
+[bug · medium] `finalReceived`, `seq`, `ws` and `stopped` are accessed from multiple threads without
+synchronization: `seq` is incremented on the audio capture thread in `sendAudio`, `finalReceived` is
+written on OkHttp's reader thread and read from the service's main thread via `gotFinal`, and `ws`
+is written/cleared from `finish()`/`cancel()` concurrently with the listener callbacks. `seq++` is a
+non-atomic read-modify-write and can produce duplicate/out-of-order sequence numbers under
+concurrent sends, and `finalReceived` (`private var` + custom getter) is not guaranteed visible to
+the reader thread. Make `seq` an `AtomicInteger` (getAndIncrement) and mark `finalReceived`
+`@Volatile`.
+
+
+
+─── app/src/main/java/com/voiceime/asr/DoubaoAsrClient.kt:101-103 ───
+[bug · medium] When an error code is received in `onMessage` the client reports `onError` but never
+closes/cancels the socket and never emits `onClosed`, so the WebSocket connection is leaked until
+GC. Also `onFailure` deliberately swallows the event when `stopped` is true without notifying
+anyone. Consider closing the socket after reporting an error so the connection is released
+deterministically.
+
+
+
+─── app/src/main/java/com/voiceime/asr/DoubaoAsrClient.kt:111-112 ───
+[bug · medium] The return value of `WebSocket.send(ByteString)` is ignored. If the send buffer is
+full or the socket is already closing, it returns `false` and the audio data is silently dropped
+(even the final packet, which means no final result is ever requested). Check the boolean result and
+notify `listener.onError` (or at least stop incrementing seq) so the session isn't left hanging
+until the timeout.
+
+
+
+─── app/src/main/java/com/voiceime/asr/DoubaoAsrClient.kt:116-120 ───
+[performance · low] The OkHttp `client` (with its dispatcher/connection pool threads) is never shut
+down. Since a new `DoubaoAsrClient` is created per voice session in `VoiceImeService`, each session
+leaks an idle OkHttp client and its thread pool. Consider reusing a shared client or calling
+`client.dispatcher.executorService.shutdown()` / `client.connectionPool.evictAll()` on teardown.
+
+
+
+─── app/src/main/java/com/voiceime/asr/DoubaoAsrClient.kt:109-110 ───
+[maintainability · low] `if (stopped && !last) return` is redundant: once `finish()`/`cancel()`
+runs, `ws` is set to null, so `ws ?: return` already short-circuits. More importantly, after
+`finish()` sets `ws = null`, a subsequent `sendAudio(..., last = true)` becomes a silent no-op. If
+`stopRecording()` can race with a concurrent `finish()`, the final packet is lost. Either drop the
+dead condition or guard the ordering explicitly.
+
+
+
+─── app/src/main/java/com/voiceime/online/GoogleSuggestions.kt:56-58 ───
+[bug · high] The OkHttp `onResponse` callback runs on a background dispatcher thread, but `onResult`
+is a UI-facing callback intended to update the keyboard's candidate view. Invoking it directly means
+the consumer receives results off the main thread (potential `CalledFromWrongThreadException` /
+unsafe view access) unless the caller marshals it — and the header comment implies the caller is not
+expected to. Also, a stale response can be delivered after a newer request has been issued:
+`cancel()` only cancels the call object, and the identity check `pending === call` is never used to
+guard delivery, so `digits` from an older request may overwrite newer results. Consider posting to
+the main thread and ignoring results when `pending !== call`.
+
+
+
+─── app/src/main/java/com/voiceime/online/GoogleSuggestions.kt:49-49 ───
+[bug · medium] `cancel()` sets `pending = null` for the new request flow, but the callback never
+clears `pending` on completion/failure, so `pending` keeps a reference to a finished `Call`
+indefinitely. Clear it (guarded by identity) when the response completes so `cancel()` doesn't
+operate on a stale call and the reference can be released.
+
+
+
+─── app/src/main/java/com/voiceime/online/GoogleSuggestions.kt:64-67 ───
+[bug · medium] `pending` is mutated from `request()`, `cancel()` and callbacks that may run on
+different threads (caller thread vs. OkHttp dispatcher thread) without synchronization or
+`@Volatile`. Since `pending` may be written concurrently, mark it `@Volatile` (or guard access) to
+avoid visibility/race issues.
+
+
+
+─── app/src/main/java/com/voiceime/online/GoogleSuggestions.kt:39-40 ───
+[bug · medium] `URLEncoder.encode(pinyin, "UTF-8")` can throw `UnsupportedEncodingException` (a
+checked exception in Java interop). If not caught, a failure here would propagate out of `request()`
+on the caller thread and crash the IME. Wrap in try/catch or use `encode(pinyin,
+StandardCharsets.UTF_8)` (API 33+) / a safe wrapper.
+
+
+
+─── app/src/main/java/com/voiceime/online/GoogleSuggestions.kt:78-82 ───
+[bug · low] `optString(i)` returns the literal string `"null"` for JSON null entries and falls back
+to `""` only when the value is absent, so a JSON `null` candidate would be added as the text "null".
+Use `if (cands.isNull(i)) continue` or `cands.opt(i)?.toString()` and skip non-strings to avoid
+inserting a bogus "null" candidate.
+
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:196-207 ───
+[bug · medium] `readKey` decodes the varint wordId and the 2 weight bytes without bounds checks. A
+truncated/corrupt blob causes the inner `while (true)` to loop past `blob.size` (reading
+stale/garbage), and `blob[pos + 1]` can throw `ArrayIndexOutOfBoundsException`. Although a try/catch
+in `lookup` swallows it, it silently kills all candidates for that keystroke. Add bounds validation
+before reading.
+
+              while (pos < blob.size) {
+                  var wid = 0
+                  var shift = 0
+                  while (true) {
++                     if (pos >= blob.size) return out
+                      val b = blob[pos].toInt() and 0xFF
+                      pos++
+                      wid = wid or ((b and 0x7F) shl shift)
+                      if (b and 0x80 == 0) break
+                      shift += 7
+                  }
++                 if (pos + 1 >= blob.size) return out
+                  val wInt = ((blob[pos].toInt() and 0xFF) shl 8) or (blob[pos + 1].toInt() and 0xFF)
+                  pos += 2
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:42-46 ───
+[bug · medium] Schema-version recovery is incomplete. `copyAsset(dbFile)` writes directly to the
+final path, so if the copy is interrupted/fails, a truncated `lexicon.db` remains and will never be
+re-copied (the `!dbFile.exists()` check passes on the broken file). Also, if `schemaVersion` throws,
+the `database` handle is leaked (never closed) before `db = null`. Consider copying to a temp file
+then renaming, and wrapping the handle in try/finally.
+
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:171-179 ───
+[performance · medium] The `cap` only limits `out` at the current frame. Children lists returned by
+`rec(i + len)` can themselves be up to `cap` long, and the nested loops multiply them, so
+intermediate `listOf(s) + rest` allocations can blow up far beyond 200 before the cap check triggers
+— and `rec` results are themselves `listOf(s) + ...` concatenations re-materialized per branch. For
+long digit inputs this can cause heavy allocation/GC on the input thread. Consider passing remaining
+cap to children or building segmentations lazily.
+
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:136-138 ───
+[bug · low] `rememberTap` rewrites the whole taps JSON on the UI thread via `apply()` for every tap.
+`apply()` is async and snapshots the current map; rapid successive taps can race with each other
+(last writer wins on the pref), and rebuilding a full `JSONObject` each tap is O(MAX_TAPS) work.
+More importantly, `taps` is a plain `HashMap` with no thread-safety guarantee if
+`lookup`/`rememberTap` are ever called from different threads. Consider delegating persistence off
+the hot path and guarding the map.
+
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:218-222 ───
+[bug · low] `readWords` builds an `IN (?,?,...)` clause with one placeholder per id. When `entries`
+contains many distinct ids (up to `keys.size` × per-key hits, or prefix results), the argument count
+can be large and the SQL string long. SQLite has a default `SQLITE_MAX_VARIABLE_NUMBER` (999). While
+ids derive from DB rows, chunking the ids (e.g. batches of ~500) would be safer and more
+predictable.
+
+
+
+─── app/src/main/java/com/voiceime/lexicon/Lexicon.kt:102-105 ───
+[maintainability · low] The `prefix` query orders only by `s DESC` and ignores `LIMIT` intersected
+with the later dedup. That's fine, but note it runs on every keystroke even when the prefix index is
+large; combined with `readWords` fetching up to 30 rows it's acceptable. However, `s` read here is
+unused beyond the loop (`(wid, s)` — `s` is never read since ordering is done in SQL). The `s`
+column value is dead in the loop and can be dropped to avoid confusion.
+
+
+
+─── app/src/main/java/com/voiceime/ui/UiUtils.kt:21-21 ───
+[bug · medium] `shape(normalColor)` is fine, but `StateListDrawable` only defines the pressed state
+via the shared `key_bg_pressed` color, ignoring `function`: function keys always darken to
+`key_bg_pressed` even though their normal color is `key_function_bg`, so pressed feedback is
+inconsistent for any custom function color. Also `addState(intArrayOf(), shape(normalColor))` is
+built even when a single state suffices. Consider deriving the pressed color from the normal color,
+or add a dedicated pressed color per key type (e.g. `key_function_bg_pressed`). Minor; no
+compile-time impact.
+
+
+
+─── app/src/main/java/com/voiceime/ui/ClipboardPanelView.kt:61-61 ───
+[maintainability · low] Minor: the empty label remains in the layout tree below the ScrollView
+(which has weight 1), so when the list is non-empty the label keeps consuming height as an
+invisible-but-measured view? No — `visibility = GONE` removes it from measurement, so this is not a
+functional bug. However, the ordering places the label outside the scroll container, meaning the
+empty state is anchored at the bottom of the panel. Consider showing the empty label inside the
+scroll container for correct centering.
+
+
+
+─── app/src/main/java/com/voiceime/ui/ClipboardPanelView.kt:64-64 ───
+[maintainability · low] `render` does not guard against duplicate/oversized input, and `items` is
+trusted to already be capped at 10. Consider enforcing the documented limit defensively
+(`items.take(10)`) or clamping, since the panel advertises "last 10 items" and an unbounded list
+would create an arbitrary number of TextViews.
+
+
+
+─── app/src/main/java/com/voiceime/ui/T9KeyboardView.kt:44-44 ───
+[bug · high] On the main page, `digitKey("1", sub1)` emits code `"1"` while displaying `"，"` as
+label, and `VoiceImeService.onKey` intercepts `key == "1"` as a Chinese comma; the displayed key
+behavior is inconsistent with the visual label. The same interception problem is worse on the symbol
+page: `textKey("空格", "space")`/`textKey("回车", "enter")` emit the same `space`/`enter` special codes
+handled by the service, and digit keys `0`/`1` are also intercepted (`1`→`，`, `0`→`0`), because
+`onKey` checks `symbolsPage` only after the special codes. Use distinct codes for the symbol page
+(e.g. prefix `sym_`) or handle punctuation before special dispatch so symbol-page keys aren't
+misinterpreted.
+
+
+
+─── app/src/main/java/com/voiceime/ui/T9KeyboardView.kt:106-107 ───
+[maintainability · low] `textKey` is a trivial one-line wrapper that only forwards to `baseKey` with
+the `function` default — this is redundant indirection that adds no behavior. It can be removed and
+`baseKey` called directly, reducing API surface.
+
+
+
+─── app/src/main/java/com/voiceime/ui/VoiceKeyboardView.kt:35-39 ───
+[bug · medium] `handleMicTouch` relies solely on the local `downPending`/`holdActive` flags, which
+are never reset when recording is stopped/reset from outside this view.
+`VoiceImeService.resetVoiceUi()` sets `voiceView.recording = false` and `voiceState = IDLE` (e.g. on
+`onStartInputView`/`stopVoiceSession`) while the user's finger is still down and the 350ms
+long-press runnable is still pending. When the queued runnable then fires it sets `holdActive =
+true` and calls `onHoldStart`, but `startRecording()` bails out because `voiceState != IDLE`... yet
+`holdActive` stays `true`. On the subsequent ACTION_UP this branch invokes `onHoldEnd` →
+`stopRecording()`, a phantom stop that is harmless only by luck. Worse, `downPending` persists
+across state resets, so a stale tap can fire `onTap` on a fresh session. Reset both flags (and the
+handler queue) whenever recording/mic state is driven externally, e.g. expose a
+`cancelPendingTouch()` and call it from the `recording`/`micEnabled` setters, or clear them in the
+`micEnabled` setter when disabling.
+
+
+
+─── app/src/main/java/com/voiceime/ui/VoiceKeyboardView.kt:45-45 ───
+[maintainability · low] `holdMode` is written by the service (`voiceView.holdMode = ...`) but never
+read anywhere in this view, so it is dead state. Either drop it or use it to drive the mic
+appearance/status text (e.g. distinguish hold vs tap recording), which the class KDoc claims it does
+("drives touch interpretation and mic appearance").
+
+
+
+─── app/src/main/java/com/voiceime/ui/VoiceKeyboardView.kt:117-117 ───
+[bug · medium] After a cancel/up the pending long-press callback is removed, but if the view is
+detached (IME closed) while a press is active, the posted runnable can still fire on the main looper
+and invoke `onHoldStart` on a torn-down service view. Detach the handler callbacks in
+`onDetachedFromWindow` to avoid a leaked/stale callback.
+
+
+
+─── app/src/main/java/com/voiceime/ui/VoiceKeyboardView.kt:159-160 ───
+[maintainability · low] `ACTION_UP` unconditionally removes *all* messages from the shared
+`handler`. If any other `postDelayed` is ever scheduled on this handler it would be silently
+cancelled here. Use a dedicated `Runnable` reference (`handler.removeCallbacks(longPressRunnable)`)
+instead of `removeCallbacksAndMessages(null)`.
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:139-139 ───
+[bug · high] In VOICE mode, the clipboard button calls `toggleClipboardPanel()` directly, bypassing
+`stopVoiceSession()`. While recording, the mic keeps capturing and the stream stays open even though
+the voice view is hidden behind the panel (privacy/mic-leak), and the final result then commits into
+a text field the user has already moved away from. Route it through the same path as
+`switchToVoice`/`openClipboardPanel` (stop the session first).
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:246-248 ───
+[bug · medium] `flushBuffer()` commits the current digit buffer, but in EN mode the pending multitap
+composing letter (`tapLetter`) is never finalized here. Switching
+mode/language/symbols/open-clipboard while a multitap letter is still composing leaves the composing
+text dangling (and `resetInput()` only clears `tapLetter` without committing or clearing composing).
+Call `finalizeTap()` before flipping the mode in `onToggle`/`switchToVoice`/`openClipboardPanel`
+(and in `resetInput`/`onStartInputView`, `setComposingText("", 1)` before dropping the state).
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:264-268 ───
+[bug · medium] `switchToKeyboard()` (and the same pattern in
+`openClipboardPanel`→`closeClipboardPanel`) tears down the session via `stopVoiceSession(salvage =
+true)` but never clears the voice status/interim afterwards. If the user is in PROCESSING (or gets a
+failure message) and then switches back to the keyboard, the stale hold-to-talk status remains. Call
+`resetVoiceUi()` after switching to keyboard so no stale voice text/status leaks into the next voice
+session.
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:117-121 ───
+[bug · high] `onDestroy` does not stop an active voice session (`stopVoiceSession`/`cleanupSession`
+is never called here). If the IME is destroyed while recording (e.g. permission revoked, low memory,
+service killed), `AudioCapture` keeps its AudioRecord running and the ASR client stays open — a
+microphone leak. Also the `clipListener` closure captures `this` and keeps a reference; ensure the
+recording is stopped first.
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:375-376 ───
+[bug · low] In `stopRecording()` the terminal (last=true) packet is sent through `asrClient` which
+may already be null or closed (e.g. socket already failed, or `onWindowHidden`/`onStartInputView`
+cancelled the client but `voiceState` was reset separately), leaving `PROCESSING` until the 8 s
+timeout fires. Consider guarding `voiceState == PROCESSING` combined with `asrClient == null` and
+failing immediately instead of waiting for the timeout.
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:417-420 ───
+[bug · high] `failSession()` bumps `sessionId`, then sets `voiceState = IDLE` / `micEnabled = true`
+but leaves the interim text visible (intentional). However it does not clear `lastInterim`, and
+`stopVoiceSession(salvage = true)` later (mode switch / window hide) commits `lastInterim` even
+though the session already failed. Since `committed` is still false and interim was kept for display
+only, a failed recognition can be committed on the next salvage. Reset `lastInterim = ""` in
+`failSession()` (or track a `failed` flag) to prevent committing stale interim after a failure.
+
+
+
+─── app/src/main/java/com/voiceime/VoiceImeService.kt:391-392 ───
+[bug · medium] `onAsrClosed()`/`onAsrFinal()` mutate `voiceView.micEnabled`/`recording`/`setStatus`
+without checking that the view is still in VOICE mode. Because the `if (id == sessionId)` guard uses
+the sessionId bumped only inside session methods, a stale `onClosed` arriving after
+`switchToKeyboard()` (which bumps sessionId, so ok) is filtered — but `cleanupSession()` also bumps
+sessionId, so a rapid final→closed sequence from the server could drop the second callback while the
+UI still shows PROCESSING. Verify the closed callback always resets UI (or add an explicit state
+check `voiceState == PROCESSING` guard).
+
+
+
+─── settings.gradle.kts:3-5 ───
+[bug · medium] The pluginManagement repositories omit `gradlePluginPortal()`... actually it's
+present. The real issue: google() is listed before mavenCentral() alongside gradlePluginPortal()
+without dependencyResolutionManagement pluginManagement separation — not an error. More relevant
+compile-time concern: the app module applies `org.jetbrains.kotlin.android` and
+`com.android.application` plugins, but no `pluginManagement { plugins { ... } }` version catalog or
+plugin versions are declared. If there is no root `build.gradle.kts` plugins block with versions,
+the build fails with 'Plugin not found'. The blocked repositories may also prevent resolution of the
+Android/Kotlin plugins.
+
+
+
+─── app/build.gradle.kts:19-19 ───
+[bug · high] Configuration caching hazard: reading `System.getenv(...)` in the `defaultConfig` block
+makes the build environment an undeclared input to the configuration phase. With
+`org.gradle.configuration-cache=true` (recommended/default in AGP 8.5+ setups) this either fails the
+build with an "external process / environment variable" error or, with a cached configuration,
+silently reuses a stale `DOUBAO_API_KEY` (e.g. a release APK built with the previous/empty key). Use
+a Gradle `providers.environmentVariable(...)` provider and `.get()` it, or pass the key via
+`-P`/`local.properties`, so the value is a declared configuration input.
+
+
+
+─── app/build.gradle.kts:21-21 ───
+[bug · medium] Two problems with escaping/encoding here: (1) the raw key must never be embedded in
+the generated `BuildConfig.java` source string, because characters like `$` are interpreted by Java
+string literals / `buildConfigField` value substitution can mangle it; build the escaped literal
+without relying on Gradle's placeholder substitution. (2) More importantly, this only escapes
+backslash and quote - not `\n`, `\r`, `\t`, or non-ASCII, so a key containing such characters
+produces an invalid Java literal (compile error). Better: use `buildConfigField("String",
+"DOUBAO_API_KEY", "\"" + rawKey.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n",
+"\\n").replace("\r", "\\r").replace("\t", "\\t") + "\"")`, or a robust escaping helper.
+
+
+
+─── app/build.gradle.kts:14-15 ───
+[maintainability · low] `versionCode`/`versionName` are declared in `defaultConfig`, but `release`
+`buildType` doesn't override them - that's fine. However there is no explicit `debug`
+`applicationIdSuffix`/`versionNameSuffix`, so debug and release APKs share the same `applicationId`
+(`com.voiceime`) and signing identity, which will fail to install side-by-side and makes accidental
+release debugging harder. Not a compile error, but worth adding `getByName("debug") {
+applicationIdSuffix = ".debug" }`.
+
+
+
+─── app/src/main/res/drawable/ic_mic.xml:7-7 ───
+[bug · medium] Avoid hardcoded `android:tint` on vector drawable roots. It requires API 21+ (24+ for
+some cases), overrides any tint applied at the usage site (ImageView `app:tint`/`android:tint`), and
+prevents theme-aware coloring (dark mode, key foreground) that IME keyboard icons typically need.
+Prefer removing the hardcoded tint and letting consumers tint, or use a theme-aware color
+resource/attribute.
+
+
+
+─── app/src/main/res/values/colors.xml:10-10 ───
+[bug · medium] The project has no `values-night` variant for this palette. All these colors are
+hard-coded light values (keyboard_bg #ECEFF1, key_bg #FFFFFF, key_text #202124...), and the IME
+theme uses `Theme.Translucent.NoTitleBar` without any light/dark awareness. On devices in dark mode
+the keyboard will still render as a bright white panel, and `key_text` (#202124 on #FFFFFF) will be
+applied on a dark system background in areas that don't set their own background. Provide a
+`res/values-night/colors.xml` with the dark counterparts (or use theme attributes/`daynight`
+resources) so the keyboard follows the system theme.
+
+
+
+─── app/src/main/res/drawable/ic_mic_white.xml:7-7 ───
+[maintainability · low] The vector uses `android:tint` (added in API 21). The tint is applied via a
+color filter at draw time, which overrides the actual `fillColor` (#FF000000) of the path — so the
+stored fill color is a dead/misleading value that suggests a black icon. Also, because the drawable
+is already hard-baked to white here, it cannot be re-tinted/reused on light backgrounds; the
+`updateMicColor()` logic in VoiceKeyboardView only changes the background, so this is fine
+functionally, but consider using `android:fillColor="#FFFFFFFF"` directly (dropping `android:tint`)
+so the icon color matches the fill and is reusable/tintable via `ImageView.setColorFilter` when
+needed.
+
+-     android:tint="#FFFFFF">
++     android:viewportHeight="24">
++     <path
++         android:fillColor="#FFFFFFFF"
+
+
+─── app/src/main/AndroidManifest.xml:31-31 ───
+[bug · medium] `PermissionActivity` uses `ActivityCompat.requestPermissions(...)` (androidx), so the
+app depends on AndroidX. However, no `<uses-sdk>`/`tools`-based min SDK is declared here, and more
+importantly the manifest provides no `<queries>`/package visibility for API 30+ — not a compile
+issue. The real compile/runtime risk: `PermissionActivity` is started via `startActivity` from the
+service with `FLAG_ACTIVITY_NEW_TASK` while declared `android:noHistory="true"`. On some
+OEMs/Android versions, a `noHistory` Activity launched for a permission request can be finished
+immediately when it loses focus during the system permission dialog, causing the request result to
+never be delivered and the mic permission to never be granted. Consider removing `noHistory`
+(calling `finish()` in `onRequestPermissionsResult` already covers cleanup).
+
+
+
+─── app/src/main/AndroidManifest.xml:20-20 ───
+[documentation · low] The `<service>` declares `android:label="@string/app_name"` and the IME
+subtype label comes from `@xml/method`, but there is no `android:settingsActivity` and no
+`android:exported` issue. Also note: for IMEs,
+`android:permission="android.permission.BIND_INPUT_METHOD"` combined with `android:exported="true"`
+is correct. No change needed here — flagging only to confirm the intent-filter action
+`android.view.InputMethod` matches the expected `InputMethodService.SERVICE_INTERFACE` constant,
+which it does.
+
+
+
+─── app/src/main/AndroidManifest.xml:12-12 ───
+[security · low] `android:networkSecurityConfig` is not declared while the app talks to a remote
+voice API (INTERNET permission). If the API endpoint is HTTPS this is fine; if any cleartext HTTP
+endpoint is used the request will fail on API 28+. Verify all voice API URLs use HTTPS, otherwise
+add a network security config.
+
+
+
+─── app/src/main/res/xml/method.xml:5-5 ───
+[bug · high] The `<subtype>` element is missing `android:imeSubtypeLocale` (and
+`android:imeSubtypeMode` is present, but locale is required for a subtype to be meaningful/valid).
+Without a locale the subtype may not be registered/selectable in the system IME switcher, and the
+IME service's `getSupportedLocales`/subtype list will be empty. Add a locale, e.g.
+`android:imeSubtypeLocale="zh_CN"`.
+
+          android:imeSubtypeMode="keyboard"
++         android:imeSubtypeLocale="zh_CN"
+
+
+─── app/src/main/res/xml/method.xml:6-6 ───
+[bug · high] `android:overridesImplicitlyEnabledSubtype` on `subtype` is not a valid attribute of
+`<subtype>` (it is an `<input-method>` level attribute,
+`android:settingsActivity`/`overridesImplicitlyEnabledSubtype` belong to input-method). AAPT will
+fail with "attribute android:overridesImplicitlyEnabledSubtype not found"/unexpected attribute. Move
+it to the `<input-method>` element or remove it.
+
+
+
+─── app/src/main/res/xml/method.xml:7-7 ───
+[bug · medium] `android:isAuxiliary` is not a valid attribute on `<subtype>` — auxiliary status is
+expressed via `android:imeSubtypeMode="bluetooth"` or the input-method's
+`supportsSwitchingToNextInputMethod`. This attribute will not compile/parse as expected. Remove it
+or use `android:isAsciiCapable`/relevant valid subtype attributes.
+
+-         android:isAuxiliary="false" />
++         />
+
+
+─── app/src/main/res/values/strings.xml:22-22 ───
+[maintainability · low] Hardcoded count "10" in the title; the actual limit is defined in code
+(ClipboardPanelView/ClipboardManager). If the code limit changes, this string silently becomes
+wrong. Consider a formatted string, e.g. `<string name="clipboard_title">剪贴板 · 最近 %1$d 条</string>`
+and pass the constant in code. Not a compile error, but a maintainability mismatch risk.
+
+
+
+
+──────── Project Summary ────────
+
+# Project Review Summary
+
+## Top Issues
+
+1. **Production API key embedded in `BuildConfig` via unescaped `buildConfigField`** (`app/build.gradle.kts`). The raw key is written into generated Java source with no escaping/encoding, so `$` or other characters get mangled, and more seriously a secret ends up compiled into the APK. Combined with the missing `networkSecurityConfig` note in `AndroidManifest.xml`, credentials handling is the highest-impact concern. Move the key out of source (local properties / signing config / backend) and read it at runtime.
+
+2. **Cross-thread state races in the voice pipeline.** A cluster of unsynchronized mutable fields spans the ASR stack:
+   - `DoubaoAsrClient.kt`: `seq`, `finalReceived`, `ws`, `stopped` accessed from audio-capture, OkHttp reader, and main threads without synchronization.
+   - `AudioCapture.kt`: `record`/`thread` fields have no memory visibility guarantee between `start()`, the capture thread, and `stop()`.
+   - `GoogleSuggestions.kt` and `ClipboardHistory.kt`: `pending` / `items` mutated from multiple threads without `@Volatile` or locking, with concurrent `ArrayList` iteration risk in `all()`.
+   
+   These are the most likely source of intermittent production crashes and stale-result bugs.
+
+3. **Resource leaks around the mic and network clients.**
+   - `VoiceImeService.onDestroy` never stops an active session, so `AudioCapture` keeps the `AudioRecord` open if the IME dies mid-recording.
+   - `DoubaoAsrClient` creates a new OkHttp `client` per session and never shuts it down, leaking dispatcher/connection-pool threads per voice session.
+   - On error frames in `onMessage`, the socket is neither closed nor `onClosed` emitted, leaking the WebSocket until GC.
+   - In `sendAudio`, a `false` return from `WebSocket.send` is ignored, silently dropping audio (including the final packet).
+
+4. **`Lexicon.kt` database access is unsafe on two fronts.** (a) `readKey` decodes varints/weights with no bounds checks; a truncated/corrupt blob loops past `blob.size` or throws AIOOBE inside the hot lookup path. (b) The asset copy writes directly to the final path with only a `!dbFile.exists()` guard, so an interrupted copy leaves a permanently broken DB that never re-copies, and schema-version failures aren't recovered from. This is the persisted-data integrity risk for the whole input method.
+
+5. **State-machine desynchronization in `VoiceImeService`.** Multiple comments describe the same failure mode: guards and cleanup don't cover all transitions.
+   - `failSession()` doesn't clear `lastInterim`, so a later `stopVoiceSession(salvage=true)` commits stale interim text.
+   - `switchToKeyboard()`/`closeClipboardPanel()` tear down the session but leave the voice status/interim un-cleared.
+   - `onAsrClosed()`/`onAsrFinal()` mutate the voice view without confirming it's still in VOICE mode, and the `sessionId` guard can be bypassed after a mode switch.
+   - `stopRecording()` sends the terminal packet through a possibly-null/closed `asrClient`, stranding `PROCESSING` until the 8 s timeout.
+
+6. **`AsrProtocol.kt` frame parsing robustness.** In the error branch `isLast` is hardcoded `false` (a terminating error frame won't terminate), `seq` isn't parsed, and there is no upper bound on payload size before copy/allocation — a malformed/compressed payload can drive unbounded allocation. `optString("text", null)` also returns the literal `"null"` in some org.json implementations.
+
+7. **`method.xml` contains invalid IME-subtype attributes** that AAPT won't accept as intended: `android:overridesImplicitlyEnabledSubtype` and `android:isAuxiliary` are not valid on `<subtype>`, and `android:imeSubtypeLocale` is missing entirely — meaning the subtype may not even register in the system IME switcher.
+
+8. **`VoiceKeyboardView` touch handling is fragile.** `downPending`/`holdActive` are never reset when recording is stopped externally (`resetVoiceUi()`), leaving the view in a stuck state; `removeCallbacksAndMessages(null)` on `ACTION_UP` cancels *all* handler messages; and a pending long-press runnable can fire after detach against a torn-down service.
+
+## Module Hotspots
+
+- **`app/src/main/java/com/voiceime/asr/`** — highest severity density. `AudioCapture.kt` (thread-safety + leak), `DoubaoAsrClient.kt` (5 comments: races, leaked socket/client, dropped sends), `AsrProtocol.kt` (parse robustness). This is the core path and deserves the most review attention.
+- **`app/src/main/java/com/voiceime/VoiceImeService.kt`** — 7 comments, all state/lifecycle cleanup gaps. The class is the central coordinator and clearly carries too many responsibilities.
+- **`app/src/main/java/com/voiceime/lexicon/Lexicon.kt`** — 6 comments covering DB integrity, O(N²) candidate expansion, per-keystroke synchronous I/O, and unbounded SQL placeholder lists.
+- **`app/src/main/java/com/voiceime/online/GoogleSuggestions.kt`** — 5 comments, nearly all concurrency/callback-threading (main-thread contract leak, `pending` visibility, unchecked `URLEncoder` exception).
+- **`app/src/main/res/`** (`xml/method.xml`, `values/colors.xml`, `drawable/*`, `values/strings.xml`) — small but multiple correctness/theme issues concentrated here.
+
+## Cross-Cutting Concerns
+
+- **Shared mutable state without synchronization.** Recurring pattern across `DoubaoAsrClient.kt`, `AudioCapture.kt`, `GoogleSuggestions.kt`, `ClipboardHistory.kt`. Adopt a consistent convention (e.g. all client/view state confined to a single thread, or `@Volatile`/`synchronized` on cross-thread fields). `CoroutineScope`/structured concurrency would consolidate much of this.
+- **UI-facing callbacks invoked off the main thread.** `GoogleSuggestions.onResult` is called from OkHttp's dispatcher; the `DoubaoAsrClient` `onFinal`/`onInterim` flow to `VoiceImeService` interacts with UI fields. There is no enforced main-thread contract at these boundaries.
+- **Lifecycle cleanup not invoked on teardown.** The same pattern (start/subscribe without a matching stop/release) appears in `onDestroy`, the error path of `onMessage`, and `AudioCapture`'s exception handler. A single `close()`/`cleanupSession()` that is guaranteed to run would fix several findings.
+- **`optString(...)` JSON-null footgun.** Repeated in `AsrProtocol.kt` and `GoogleSuggestions.kt`: missing `isNull()` checks yield the literal `"null"` as data. Standardize on a safe JSON-string accessor.
+- **`apply()` vs durability and main-thread JSON rebuilds.** `ClipboardHistory.add()` and `Lexicon.rememberTap()` both rewrite small prefs blobs with async `apply()` and no bounding/concurrency discipline — a shared pattern worth consolidating into a small persistence helper.
+- **Unbounded inputs trusted at boundaries.** `ClipboardHistory` load, `ClipboardPanelView.render`, `Lexicon` candidate expansion, and `AsrProtocol` payload size all assume data was already capped. Defensive clamping at entry points is missing throughout.
+- **No dark-theme / night resources.** `colors.xml` is light-only; `Theme.Translucent.NoTitleBar` with no `values-night` means the IME ignores system dark mode. Hardcoded `android:tint` on the mic vectors compounds this and blocks theme-aware coloring.
+
+## Quick Wins
+
+- **`Lexicon.readKey`**: add explicit `pos + len <= blob.size` / bounds guards before decode — a few lines removes the corrupt-DB crash and stale-read loop.
+- **`AsrProtocol` error branch**: parse `seq`, honor `isLast`, and add a max-payload-size constant before copy. Small, contained, closes a DoS/liveness gap.
+- **`DoubaoAsrClient.sendAudio`**: check the `WebSocket.send` boolean and route failures to `onError`; remove the redundant `if (stopped && !last)`.
+- **`GoogleSuggestions`**: clear `pending` (identity-guarded) on completion/failure, mark it `@Volatile`, wrap `URLEncoder.encode` with `StandardCharsets.UTF_8` (no checked exception), and post `onResult` to the main thread.
+- **`ClipboardHistory`**: cap the list during `load()`, and wrap `add`/`clear`/`all` in `synchronized` (or use a `CopyOnWriteArrayList`).
+- **`VoiceKeyboardView`**: reset `downPending`/`holdActive` when recording is stopped externally; replace `removeCallbacksAndMessages(null)` with `removeCallbacks(longPressRunnable)`; `removeCallbacks` in `onDetachedFromWindow`. Also drop the dead `holdMode` field.
+- **`method.xml`**: remove the invalid `overridesImplicitlyEnabledSubtype` and `isAuxiliary` attributes and add `android:imeSubtypeLocale` — otherwise the subtype may not register.
+- **`strings.xml`**: convert the clipboard title to a `%1$d`-formatted resource so the "10" tracks the code limit.
+- **`T9KeyboardView`**: delete the trivial `textKey` wrapper; reconcile the `"1"` key's code-vs-label mismatch between `digitKey` and `VoiceImeService.onKey`.
+- **`build.gradle.kts`**: stop reading `System.getenv` in `defaultConfig` (configuration-cache hazard) and add a `debug { applicationIdSuffix = ".debug" }` so debug/release don't share an `applicationId`.

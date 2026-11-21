@@ -1,0 +1,51 @@
+=== Phase A: download dicts + freq list ===
+luna_pinyin.dict.yaml already present: 889896 bytes
+ice_base.dict.yaml already present: 16609062 bytes
+zh_full.txt already present: 4619466 bytes
+=== Parse dicts + freq ===
+luna_pinyin.dict.yaml: entries=70732 bytes=889896 gzip=387624
+ice_base.dict.yaml: entries=543423 bytes=16609062 gzip=6331442
+freq list: 428719 words
+merged: distinct_pinyin_keys=464180 syllables=424 parse_time=5.31s
+prefix index built: 464180 keys in 1.16s
+
+=== Phase B: LOCAL-ONLY T9 tests (no network in this phase) ===
+[64426] (nihao (ni hao)) segs=12 ms=0.08 cands=['你好', '密函', '密告', '蜜柑', '米糕', '拟稿', '你敢', '你搞', '拟好', '泥蚶'] expected=['你好'] ranks={'你好': 1} found=True
+[64646] (task example: NOT nihao keys (nihao=64426)) segs=10 ms=0.03 cands=[] expected=[] ranks={} found=None
+[94664486] (zhongguo) segs=72 ms=0.09 cands=['中国', '重活', '雄浑', '中火', '凶魂', '种过', '忠魂', '重货', '中过', '中果'] expected=['中国'] ranks={'中国': 1} found=True
+[943943] (xiexie) segs=25 ms=0.06 cands=['谢谢', '这些', '歇歇', '写写', '屑屑', '斜斜', '写着', '写些', '歇着', '斜着'] expected=['谢谢'] ranks={'谢谢': 1} found=True
+[9245426] (zaijian) segs=42 ms=0.07 cands=['再见', '外交', '再建', '外间', '外联', '外教', '在建', '在教', '在叫', '外键'] expected=['再见'] ranks={'再见': 1} found=True
+[96] (wo) segs=2 ms=0.1 cands=['我', '喔', '哟', '握', '窝', '涴', '唷', '沃', '卧', '喲'] expected=['我'] ranks={'我': 1} found=True
+[926] (wan) segs=8 ms=0.96 cands=['要', '玩', '么', '完', '早', '晚', '糟', '药', '约', '眼'] expected=['晚', '玩'] ranks={'晚': 6, '玩': 2} found=True
+[7484] (shui) segs=5 ms=0.05 cands=['说', '谁', '說', '睡', '水', '誰', '气体', '税', '稅', '説'] expected=['水'] ranks={'水': 5} found=True
+[5426] (lian) segs=14 ms=0.77 cands=['了', '叫', '见', '件', '开', '見', '连', '教', '覺', '间'] expected=['练'] ranks={'练': 22} found=True
+[426] (han) segs=6 ms=0.33 cands=['好', '和', '干', '搞', '号', '高', '敢', '幹', '赶', '感'] expected=['汉'] ranks={'汉': 13} found=True
+[84] (ti) segs=1 ms=0.31 cands=['替', '达', '提', '踢', '體', '題', '体', '弟', '梯', '剃'] expected=['体'] ranks={'体': 7} found=True
+[2] (a) segs=1 ms=0.04 cands=['啊', '阿', '呵', '腌', '吖', 'ㄚ', '吁', '嗄', '錒', '锕'] expected=['啊'] ranks={'啊': 1} found=True
+[743663] (shenme (shen me)) segs=55 ms=0.1 cands=['什么', '什麼', '甚麼'] expected=['什么'] ranks={'什么': 1} found=True
+[94664936] (zhongwen) segs=48 ms=0.09 cands=['中文', '雄文', '雄蚊', '重文'] expected=['中文'] ranks={'中文': 1} found=True
+[542694] (lianxi) segs=42 ms=0.2 cands=['联系', '建议', '交易', '练习', '链子', '饺子', '剪子', '教义', '奸细', '简易'] expected=['练习'] ranks={'练习': 4} found=True
+[96636] (women) segs=14 ms=0.05 cands=['我们'] expected=['我们'] ranks={'我们': 1} found=True
+[prefix 644] hits=274 ms=274.64 top=['你好', '迷惑', '迷宫', '尼古拉斯', '尼古拉', '迷航', '迷幻药', '迷糊', '迷幻', '米格']
+[prefix 96] hits=11266 ms=277.95 top=['我', '我们', '有', '走', '用', '从', '我会', '有人', '有点', '永远']
+[prefix 94] hits=66927 ms=281.56 top=['这', '这', '一', '想', '知道', '一个', '着', '着', '现在', '这个']
+wrote local_results.json
+
+=== Phase C: ONLINE tests (Google Input Tools, no key) ===
+{'q': 'nihao', 'round': 1, 'status': 200, 'latency_s': 0.173, 'success': True, 'top_candidates': ['你好', '拟好', '你', '尼', '泥', '拟', '腻', '逆', '妮', '倪'], 'expected': '你好', 'expected_found': True}
+{'q': 'nihao', 'round': 2, 'status': 200, 'latency_s': 0.157, 'success': True, 'top_candidates': ['你好', '拟好', '你', '尼', '泥', '拟', '腻', '逆', '妮', '倪'], 'expected': '你好', 'expected_found': True}
+{'q': 'zhongguo', 'round': 1, 'status': 200, 'latency_s': 0.186, 'success': True, 'top_candidates': ['中国', '种过', '中', '种', '重', '钟', '众', '忠', '终', '仲'], 'expected': '中国', 'expected_found': True}
+{'q': 'zhongguo', 'round': 2, 'status': 200, 'latency_s': 0.231, 'success': True, 'top_candidates': ['中国', '种过', '中', '种', '重', '钟', '众', '忠', '终', '仲'], 'expected': '中国', 'expected_found': True}
+{'q': 'xiexie', 'round': 1, 'status': 200, 'latency_s': 0.191, 'success': True, 'top_candidates': ['谢谢', '写写', '歇歇', '写些', '泄泻', '斜斜', 'xiexie', '写', '些', '谢'], 'expected': '谢谢', 'expected_found': True}
+{'q': 'xiexie', 'round': 2, 'status': 200, 'latency_s': 0.177, 'success': True, 'top_candidates': ['谢谢', '写写', '歇歇', '写些', '泄泻', '斜斜', 'xiexie', '写', '些', '谢'], 'expected': '谢谢', 'expected_found': True}
+{'q': 'zaijian', 'round': 1, 'status': 200, 'latency_s': 0.166, 'success': True, 'top_candidates': ['再见', '在建', '再建', '在吉安', '在', '再', '载', '仔', '宰', '灾'], 'expected': '再见', 'expected_found': True}
+{'q': 'zaijian', 'round': 2, 'status': 200, 'latency_s': 0.165, 'success': True, 'top_candidates': ['再见', '在建', '再建', '在吉安', '在', '再', '载', '仔', '宰', '灾'], 'expected': '再见', 'expected_found': True}
+{'q': 'wo', 'round': 1, 'status': 200, 'latency_s': 0.166, 'success': True, 'top_candidates': ['我', '卧', '窝', '喔', '握', '沃', '倭', '涡', '渥', '蜗'], 'expected': '我', 'expected_found': True}
+{'q': 'wo', 'round': 2, 'status': 200, 'latency_s': 0.158, 'success': True, 'top_candidates': ['我', '卧', '窝', '喔', '握', '沃', '倭', '涡', '渥', '蜗'], 'expected': '我', 'expected_found': True}
+{'q': 'nih', 'round': 1, 'status': 200, 'latency_s': 0.109, 'success': True, 'top_candidates': ['你好', '你会', '你还', '你和', '你很', '拟合', 'NIH', '你', '霓虹', '你话'], 'expected': None, 'expected_found': None}
+{'q': 'nih', 'round': 2, 'status': 200, 'latency_s': 0.165, 'success': True, 'top_candidates': ['你好', '你会', '你还', '你和', '你很', '拟合', 'NIH', '你', '霓虹', '你话'], 'expected': None, 'expected_found': None}
+{'q': 'zhongg', 'round': 1, 'status': 200, 'latency_s': 0.178, 'success': True, 'top_candidates': ['中国', '中共', '忠告', '终归', '重工', '中古', '终稿', '中观', '中高', '中港'], 'expected': None, 'expected_found': None}
+{'q': 'zhongg', 'round': 2, 'status': 200, 'latency_s': 0.176, 'success': True, 'top_candidates': ['中国', '中共', '忠告', '终归', '重工', '中古', '终稿', '中观', '中高', '中港'], 'expected': None, 'expected_found': None}
+wrote online_results.json
+
+ALL DONE

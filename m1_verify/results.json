@@ -1,0 +1,4744 @@
+[
+  {
+    "wav": "s1.wav",
+    "reference": "今天天气怎么样，我们下午去公园散步吧。",
+    "hypothesis": "今天天气怎么样？我们下午去公园散步吧。",
+    "audio_duration_s": 3.58,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.345,
+    "final_at_s": 5.02,
+    "interim_count": 8,
+    "interim_lag_max_s": 0.726,
+    "interim_lag_median_s": 0.608,
+    "interim": [
+      {
+        "t": 1.953,
+        "covered_ms": 260,
+        "lag_s": 0.548,
+        "text": "今天",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.404,
+        "covered_ms": 660,
+        "lag_s": 0.599,
+        "text": "今天天气",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.653,
+        "covered_ms": 900,
+        "lag_s": 0.608,
+        "text": "今天天气怎么样",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.552,
+        "covered_ms": 1700,
+        "lag_s": 0.707,
+        "text": "今天天气怎么样？我们",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.811,
+        "covered_ms": 1940,
+        "lag_s": 0.726,
+        "text": "今天天气怎么样？我们下午",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.234,
+        "covered_ms": 2420,
+        "lag_s": 0.67,
+        "text": "今天天气怎么样？我们下午去",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.649,
+        "covered_ms": 2980,
+        "lag_s": 0.524,
+        "text": "今天天气怎么样？我们下午去公园散步",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.929,
+        "covered_ms": 3220,
+        "lag_s": 0.564,
+        "text": "今天天气怎么样？我们下午去公园散步吧",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            }
+          }
+        },
+        "t": 1.3944483830127865
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 600
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 260,
+                "start_time": 180,
+                "text": "今天",
+                "words": [
+                  {
+                    "end_time": 260,
+                    "start_time": 180,
+                    "text": "今天"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 1.9529289531055838
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1100
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 660,
+                "start_time": 40,
+                "text": "今天天气",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 660,
+                    "start_time": 580,
+                    "text": "天气"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.4039853650610894
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1300
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "prefetch": true,
+            "text": "今天天气怎么样",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 900,
+                "start_time": 40,
+                "text": "今天天气怎么样",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 900,
+                    "start_time": 820,
+                    "text": "怎么样"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.652677417965606
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2200
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气怎么样？我们",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1700,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1700,
+                    "start_time": 1620,
+                    "text": "我们"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.5516054681502283
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2400
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气怎么样？我们下午",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1940,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们下午",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 1940,
+                    "start_time": 1860,
+                    "text": "下午"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.8110907359514385
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2900
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气怎么样？我们下午去",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2420,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们下午去",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "下午"
+                  },
+                  {
+                    "end_time": 2420,
+                    "start_time": 2340,
+                    "text": "去"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.234328339109197
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3300
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气怎么样？我们下午去公园散步",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2980,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们下午去公园散步",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "下午"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "去"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "公园"
+                  },
+                  {
+                    "end_time": 2980,
+                    "start_time": 2900,
+                    "text": "散步"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.648960571037605
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3580
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "prefetch": true,
+            "text": "今天天气怎么样？我们下午去公园散步吧",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3220,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们下午去公园散步吧",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "下午"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "去"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "公园"
+                  },
+                  {
+                    "end_time": 2840,
+                    "start_time": 2760,
+                    "text": "散步"
+                  },
+                  {
+                    "end_time": 3220,
+                    "start_time": 3140,
+                    "text": "吧"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.929022958036512
+      },
+      {
+        "seq": 9,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3580
+          },
+          "result": {
+            "additions": {
+              "log_id": "202611211033072544FD96DB428EFA3B0F"
+            },
+            "text": "今天天气怎么样？我们下午去公园散步吧。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 3220,
+                "start_time": 40,
+                "text": "今天天气怎么样？我们下午去公园散步吧。",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "今天"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "天气"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "怎么样"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "下午"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "去"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "公园"
+                  },
+                  {
+                    "end_time": 2840,
+                    "start_time": 2760,
+                    "text": "散步"
+                  },
+                  {
+                    "end_time": 3220,
+                    "start_time": 3140,
+                    "text": "吧"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.0195453320629895
+      }
+    ]
+  },
+  {
+    "wav": "s2.wav",
+    "reference": "请帮我打开客厅的空调，温度调到二十六度。",
+    "hypothesis": "请帮我打开客厅的空调，温度调到二十六度。",
+    "audio_duration_s": 3.95,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 0.535,
+    "final_at_s": 5.446,
+    "interim_count": 9,
+    "interim_lag_max_s": 0.773,
+    "interim_lag_median_s": 0.547,
+    "interim": [
+      {
+        "t": 2.023,
+        "covered_ms": 420,
+        "lag_s": 0.62,
+        "text": "请帮",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.19,
+        "covered_ms": 660,
+        "lag_s": 0.547,
+        "text": "请帮我打开",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.788,
+        "covered_ms": 1380,
+        "lag_s": 0.425,
+        "text": "请帮我打开客厅的",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.296,
+        "covered_ms": 1540,
+        "lag_s": 0.773,
+        "text": "请帮我打开客厅的空调",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.813,
+        "covered_ms": 2340,
+        "lag_s": 0.491,
+        "text": "请帮我打开客厅的空调温度",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.078,
+        "covered_ms": 2340,
+        "lag_s": 0.755,
+        "text": "请帮我打开客厅的空调温度",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.452,
+        "covered_ms": 2900,
+        "lag_s": 0.569,
+        "text": "请帮我打开客厅的空调，温度调到",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.791,
+        "covered_ms": 3300,
+        "lag_s": 0.508,
+        "text": "请帮我打开客厅的空调，温度调到二十六",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.056,
+        "covered_ms": 3540,
+        "lag_s": 0.533,
+        "text": "请帮我打开客厅的空调，温度调到二十六度",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            }
+          }
+        },
+        "t": 1.2626264120917767
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 800
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 420,
+                "start_time": 40,
+                "text": "请帮",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 420,
+                    "start_time": 340,
+                    "text": "帮"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.022771420190111
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1000
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 660,
+                "start_time": 40,
+                "text": "请帮我打开",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 660,
+                    "start_time": 580,
+                    "text": "打开"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.1896566301584244
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开客厅的",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1380,
+                "start_time": 40,
+                "text": "请帮我打开客厅的",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1380,
+                    "start_time": 1300,
+                    "text": "的"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.787629585014656
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2100
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "prefetch": true,
+            "text": "请帮我打开客厅的空调",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1540,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1540,
+                    "start_time": 1460,
+                    "text": "空调"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.2955320950131863
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开客厅的空调温度",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2340,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调温度",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2340,
+                    "start_time": 2260,
+                    "text": "温度"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.813361110165715
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2900
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "prefetch": true,
+            "text": "请帮我打开客厅的空调温度",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2340,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调温度",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2340,
+                    "start_time": 2260,
+                    "text": "温度"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.07764485408552
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3200
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开客厅的空调，温度调到",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2900,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调，温度调到",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "温度"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "调"
+                  },
+                  {
+                    "end_time": 2900,
+                    "start_time": 2820,
+                    "text": "到"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.452030890155584
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开客厅的空调，温度调到二十六",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3300,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调，温度调到二十六",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "温度"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "调"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "到"
+                  },
+                  {
+                    "end_time": 2920,
+                    "start_time": 2840,
+                    "text": "二"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "十"
+                  },
+                  {
+                    "end_time": 3300,
+                    "start_time": 3220,
+                    "text": "六"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.790945907123387
+      },
+      {
+        "seq": 9,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3800
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "prefetch": true,
+            "text": "请帮我打开客厅的空调，温度调到二十六度",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3540,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调，温度调到二十六度",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "温度"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "调"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "到"
+                  },
+                  {
+                    "end_time": 2920,
+                    "start_time": 2840,
+                    "text": "二"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "十"
+                  },
+                  {
+                    "end_time": 3160,
+                    "start_time": 3080,
+                    "text": "六"
+                  },
+                  {
+                    "end_time": 3540,
+                    "start_time": 3460,
+                    "text": "度"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.05591818317771
+      },
+      {
+        "seq": 10,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3950
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103312F6170E120C0727D38708"
+            },
+            "text": "请帮我打开客厅的空调，温度调到二十六度。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 3540,
+                "start_time": 40,
+                "text": "请帮我打开客厅的空调，温度调到二十六度。",
+                "words": [
+                  {
+                    "end_time": 120,
+                    "start_time": 40,
+                    "text": "请"
+                  },
+                  {
+                    "end_time": 280,
+                    "start_time": 200,
+                    "text": "帮"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "打开"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "客厅"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1400,
+                    "start_time": 1320,
+                    "text": "空调"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "温度"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "调"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "到"
+                  },
+                  {
+                    "end_time": 2920,
+                    "start_time": 2840,
+                    "text": "二"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "十"
+                  },
+                  {
+                    "end_time": 3160,
+                    "start_time": 3080,
+                    "text": "六"
+                  },
+                  {
+                    "end_time": 3540,
+                    "start_time": 3460,
+                    "text": "度"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.446480822050944
+      }
+    ]
+  },
+  {
+    "wav": "s3.wav",
+    "reference": "我明天早上九点要开会，记得提前提醒我。",
+    "hypothesis": "我明天早上九点要开会，记得提前提醒我。",
+    "audio_duration_s": 3.74,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.303,
+    "final_at_s": 5.282,
+    "interim_count": 10,
+    "interim_lag_max_s": 0.763,
+    "interim_lag_median_s": 0.653,
+    "interim": [
+      {
+        "t": 2.242,
+        "covered_ms": 340,
+        "lag_s": 0.651,
+        "text": "我",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.514,
+        "covered_ms": 500,
+        "lag_s": 0.763,
+        "text": "我明天",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.76,
+        "covered_ms": 980,
+        "lag_s": 0.529,
+        "text": "我明天早上",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.039,
+        "covered_ms": 1300,
+        "lag_s": 0.488,
+        "text": "我明天早上九点",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.33,
+        "covered_ms": 1700,
+        "lag_s": 0.379,
+        "text": "我明天早上九点要开会",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.604,
+        "covered_ms": 1700,
+        "lag_s": 0.653,
+        "text": "我明天早上九点要开会",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.325,
+        "covered_ms": 2420,
+        "lag_s": 0.654,
+        "text": "我明天早上九点要开会，记得",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.684,
+        "covered_ms": 2740,
+        "lag_s": 0.693,
+        "text": "我明天早上九点要开会，记得提前",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.945,
+        "covered_ms": 3300,
+        "lag_s": 0.394,
+        "text": "我明天早上九点要开会，记得提前提醒我",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.253,
+        "covered_ms": 3300,
+        "lag_s": 0.702,
+        "text": "我明天早上九点要开会，记得提前提醒我",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            }
+          }
+        },
+        "t": 1.512828027131036
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 800
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 340,
+                "start_time": 260,
+                "text": "我",
+                "words": [
+                  {
+                    "end_time": 340,
+                    "start_time": 260,
+                    "text": "我"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.242189283017069
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1100
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 500,
+                "start_time": 120,
+                "text": "我明天",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 500,
+                    "start_time": 420,
+                    "text": "明天"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.5140284469816834
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1300
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 980,
+                "start_time": 120,
+                "text": "我明天早上",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 980,
+                    "start_time": 900,
+                    "text": "早上"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.7598246971610934
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1600
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1300,
+                "start_time": 120,
+                "text": "我明天早上九点",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1300,
+                    "start_time": 1220,
+                    "text": "点"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.0388522010762244
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1900
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点要开会",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1700,
+                "start_time": 120,
+                "text": "我明天早上九点要开会",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1700,
+                    "start_time": 1620,
+                    "text": "开会"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.329781903186813
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2100
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "prefetch": true,
+            "text": "我明天早上九点要开会",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1700,
+                "start_time": 120,
+                "text": "我明天早上九点要开会",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1700,
+                    "start_time": 1620,
+                    "text": "开会"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.6035792001057416
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2900
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点要开会，记得",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2420,
+                "start_time": 120,
+                "text": "我明天早上九点要开会，记得",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "开会"
+                  },
+                  {
+                    "end_time": 2420,
+                    "start_time": 2340,
+                    "text": "记得"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.325372416060418
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3200
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点要开会，记得提前",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2740,
+                "start_time": 120,
+                "text": "我明天早上九点要开会，记得提前",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "开会"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "记得"
+                  },
+                  {
+                    "end_time": 2740,
+                    "start_time": 2660,
+                    "text": "提前"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.68374367011711
+      },
+      {
+        "seq": 9,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3500
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点要开会，记得提前提醒我",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3300,
+                "start_time": 120,
+                "text": "我明天早上九点要开会，记得提前提醒我",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "开会"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "记得"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "提前"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "提醒"
+                  },
+                  {
+                    "end_time": 3300,
+                    "start_time": 3220,
+                    "text": "我"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.9445504390168935
+      },
+      {
+        "seq": 10,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3740
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "prefetch": true,
+            "text": "我明天早上九点要开会，记得提前提醒我",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3300,
+                "start_time": 120,
+                "text": "我明天早上九点要开会，记得提前提醒我",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "开会"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "记得"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "提前"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "提醒"
+                  },
+                  {
+                    "end_time": 3300,
+                    "start_time": 3220,
+                    "text": "我"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.253281275043264
+      },
+      {
+        "seq": 11,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3740
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110331890038ED32EE8B0D1DA04"
+            },
+            "text": "我明天早上九点要开会，记得提前提醒我。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 3300,
+                "start_time": 120,
+                "text": "我明天早上九点要开会，记得提前提醒我。",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "明天"
+                  },
+                  {
+                    "end_time": 840,
+                    "start_time": 760,
+                    "text": "早上"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "九"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "点"
+                  },
+                  {
+                    "end_time": 1320,
+                    "start_time": 1240,
+                    "text": "要"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "开会"
+                  },
+                  {
+                    "end_time": 2280,
+                    "start_time": 2200,
+                    "text": "记得"
+                  },
+                  {
+                    "end_time": 2600,
+                    "start_time": 2520,
+                    "text": "提前"
+                  },
+                  {
+                    "end_time": 3000,
+                    "start_time": 2920,
+                    "text": "提醒"
+                  },
+                  {
+                    "end_time": 3300,
+                    "start_time": 3220,
+                    "text": "我"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.28195142513141
+      }
+    ]
+  },
+  {
+    "wav": "s4.wav",
+    "reference": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "hypothesis": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "audio_duration_s": 3.98,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 1.051,
+    "final_at_s": 6.058,
+    "interim_count": 9,
+    "interim_lag_max_s": 1.562,
+    "interim_lag_median_s": 1.154,
+    "interim": [
+      {
+        "t": 2.79,
+        "covered_ms": 740,
+        "lag_s": 0.974,
+        "text": "这家餐厅",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.203,
+        "covered_ms": 900,
+        "lag_s": 1.226,
+        "text": "这家餐厅的",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.596,
+        "covered_ms": 1380,
+        "lag_s": 1.139,
+        "text": "这家餐厅的红烧肉",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.934,
+        "covered_ms": 1700,
+        "lag_s": 1.158,
+        "text": "这家餐厅的红烧肉特别",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.366,
+        "covered_ms": 2020,
+        "lag_s": 1.269,
+        "text": "这家餐厅的红烧肉特别好吃",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.658,
+        "covered_ms": 2020,
+        "lag_s": 1.562,
+        "text": "这家餐厅的红烧肉特别好吃",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.131,
+        "covered_ms": 2900,
+        "lag_s": 1.154,
+        "text": "这家餐厅的红烧肉特别好吃，下次",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.402,
+        "covered_ms": 3220,
+        "lag_s": 1.106,
+        "text": "这家餐厅的红烧肉特别好吃，下次我们",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.748,
+        "covered_ms": 3620,
+        "lag_s": 1.052,
+        "text": "这家餐厅的红烧肉特别好吃，下次我们还来",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            }
+          }
+        },
+        "t": 1.3384154660161585
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1500
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 740,
+                "start_time": 280,
+                "text": "这家餐厅",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 740,
+                    "start_time": 660,
+                    "text": "餐厅"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.789992548059672
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1900
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 900,
+                "start_time": 280,
+                "text": "这家餐厅的",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 900,
+                    "start_time": 820,
+                    "text": "的"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.2025923270266503
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2300
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1380,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1380,
+                    "start_time": 1300,
+                    "text": "肉"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.5958909899927676
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉特别",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1700,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1700,
+                    "start_time": 1620,
+                    "text": "特别"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.9343983370345086
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3100
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉特别好吃",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2020,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 2020,
+                    "start_time": 1940,
+                    "text": "好吃"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.3656787511426955
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3400
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "prefetch": true,
+            "text": "这家餐厅的红烧肉特别好吃",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2020,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 2020,
+                    "start_time": 1940,
+                    "text": "好吃"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.657951244153082
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3800
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉特别好吃，下次",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2900,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃，下次",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 1880,
+                    "start_time": 1800,
+                    "text": "好吃"
+                  },
+                  {
+                    "end_time": 2900,
+                    "start_time": 2820,
+                    "text": "下次"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.130593876121566
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3980
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉特别好吃，下次我们",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3220,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃，下次我们",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 1880,
+                    "start_time": 1800,
+                    "text": "好吃"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "下次"
+                  },
+                  {
+                    "end_time": 3220,
+                    "start_time": 3140,
+                    "text": "我们"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.402055060956627
+      },
+      {
+        "seq": 9,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3980
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "text": "这家餐厅的红烧肉特别好吃，下次我们还来",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3620,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃，下次我们还来",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 1880,
+                    "start_time": 1800,
+                    "text": "好吃"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "下次"
+                  },
+                  {
+                    "end_time": 3080,
+                    "start_time": 3000,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 3400,
+                    "start_time": 3320,
+                    "text": "还"
+                  },
+                  {
+                    "end_time": 3620,
+                    "start_time": 3540,
+                    "text": "来"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.748473368119448
+      },
+      {
+        "seq": 10,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3980
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103323501FE77BEE07E6D4FF32"
+            },
+            "prefetch": true,
+            "text": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 3620,
+                "start_time": 280,
+                "text": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+                "words": [
+                  {
+                    "end_time": 360,
+                    "start_time": 280,
+                    "text": "这家"
+                  },
+                  {
+                    "end_time": 600,
+                    "start_time": 520,
+                    "text": "餐厅"
+                  },
+                  {
+                    "end_time": 760,
+                    "start_time": 680,
+                    "text": "的"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "红"
+                  },
+                  {
+                    "end_time": 1080,
+                    "start_time": 1000,
+                    "text": "烧"
+                  },
+                  {
+                    "end_time": 1240,
+                    "start_time": 1160,
+                    "text": "肉"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "特别"
+                  },
+                  {
+                    "end_time": 1880,
+                    "start_time": 1800,
+                    "text": "好吃"
+                  },
+                  {
+                    "end_time": 2760,
+                    "start_time": 2680,
+                    "text": "下次"
+                  },
+                  {
+                    "end_time": 3080,
+                    "start_time": 3000,
+                    "text": "我们"
+                  },
+                  {
+                    "end_time": 3400,
+                    "start_time": 3320,
+                    "text": "还"
+                  },
+                  {
+                    "end_time": 3620,
+                    "start_time": 3540,
+                    "text": "来"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 6.058367136167362
+      }
+    ]
+  },
+  {
+    "wav": "s5.wav",
+    "reference": "麻烦把刚才那段话翻译成英文发给小王。",
+    "hypothesis": "麻烦把刚才那段话翻译成英文发给小王。",
+    "audio_duration_s": 3.8,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.38,
+    "final_at_s": 5.258,
+    "interim_count": 11,
+    "interim_lag_max_s": 1.133,
+    "interim_lag_median_s": 0.684,
+    "interim": [
+      {
+        "t": 2.052,
+        "covered_ms": 340,
+        "lag_s": 0.565,
+        "text": "麻烦",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.411,
+        "covered_ms": 580,
+        "lag_s": 0.684,
+        "text": "麻烦把",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.651,
+        "covered_ms": 820,
+        "lag_s": 0.684,
+        "text": "麻烦把刚才",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.421,
+        "covered_ms": 1140,
+        "lag_s": 1.133,
+        "text": "麻烦把刚才那段",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.773,
+        "covered_ms": 1700,
+        "lag_s": 0.926,
+        "text": "麻烦把刚才那段话",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.979,
+        "covered_ms": 1860,
+        "lag_s": 0.972,
+        "text": "麻烦把刚才那段话翻译",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.089,
+        "covered_ms": 2340,
+        "lag_s": 0.602,
+        "text": "麻烦把刚才那段话翻译成英文",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.207,
+        "covered_ms": 2340,
+        "lag_s": 0.72,
+        "text": "麻烦把刚才那段话翻译成英文",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.501,
+        "covered_ms": 2980,
+        "lag_s": 0.374,
+        "text": "麻烦把刚才那段话翻译成英文发给",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.944,
+        "covered_ms": 3300,
+        "lag_s": 0.497,
+        "text": "麻烦把刚才那段话翻译成英文发给小",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 5.229,
+        "covered_ms": 3540,
+        "lag_s": 0.542,
+        "text": "麻烦把刚才那段话翻译成英文发给小王",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            }
+          }
+        },
+        "t": 1.398159789154306
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 700
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 340,
+                "start_time": 260,
+                "text": "麻烦",
+                "words": [
+                  {
+                    "end_time": 340,
+                    "start_time": 260,
+                    "text": "麻烦"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.052220081211999
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1100
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 580,
+                "start_time": 120,
+                "text": "麻烦把",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 580,
+                    "start_time": 500,
+                    "text": "把"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.410685495007783
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1300
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 820,
+                "start_time": 120,
+                "text": "麻烦把刚才",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 820,
+                    "start_time": 740,
+                    "text": "刚才"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.6507169061806053
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1600
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1140,
+                "start_time": 120,
+                "text": "麻烦把刚才那段",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1140,
+                    "start_time": 1060,
+                    "text": "那段"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.4205349280964583
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2400
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1700,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1700,
+                    "start_time": 1620,
+                    "text": "话"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.7733104440849274
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2600
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话翻译",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1860,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1860,
+                    "start_time": 1780,
+                    "text": "翻译"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.9788915181998163
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2700
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话翻译成英文",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2340,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2340,
+                    "start_time": 2260,
+                    "text": "英文"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.089222360169515
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2800
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "prefetch": true,
+            "text": "麻烦把刚才那段话翻译成英文",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2340,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2340,
+                    "start_time": 2260,
+                    "text": "英文"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.207463333150372
+      },
+      {
+        "seq": 9,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3100
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话翻译成英文发给",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2980,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文发给",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "英文"
+                  },
+                  {
+                    "end_time": 2980,
+                    "start_time": 2900,
+                    "text": "发给"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.5013304790481925
+      },
+      {
+        "seq": 10,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3600
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话翻译成英文发给小",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3300,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文发给小",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "英文"
+                  },
+                  {
+                    "end_time": 2840,
+                    "start_time": 2760,
+                    "text": "发给"
+                  },
+                  {
+                    "end_time": 3300,
+                    "start_time": 3220,
+                    "text": "小"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.944298389134929
+      },
+      {
+        "seq": 11,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3800
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "prefetch": true,
+            "text": "麻烦把刚才那段话翻译成英文发给小王",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 3540,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文发给小王",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "英文"
+                  },
+                  {
+                    "end_time": 2840,
+                    "start_time": 2760,
+                    "text": "发给"
+                  },
+                  {
+                    "end_time": 3160,
+                    "start_time": 3080,
+                    "text": "小"
+                  },
+                  {
+                    "end_time": 3540,
+                    "start_time": 3460,
+                    "text": "王"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.229071632027626
+      },
+      {
+        "seq": 12,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3800
+          },
+          "result": {
+            "additions": {
+              "log_id": "2026112110333027922CB5C6A3161B21CD"
+            },
+            "text": "麻烦把刚才那段话翻译成英文发给小王。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 3540,
+                "start_time": 120,
+                "text": "麻烦把刚才那段话翻译成英文发给小王。",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "麻烦"
+                  },
+                  {
+                    "end_time": 440,
+                    "start_time": 360,
+                    "text": "把"
+                  },
+                  {
+                    "end_time": 680,
+                    "start_time": 600,
+                    "text": "刚才"
+                  },
+                  {
+                    "end_time": 1000,
+                    "start_time": 920,
+                    "text": "那段"
+                  },
+                  {
+                    "end_time": 1560,
+                    "start_time": 1480,
+                    "text": "话"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "翻译"
+                  },
+                  {
+                    "end_time": 1960,
+                    "start_time": 1880,
+                    "text": "成"
+                  },
+                  {
+                    "end_time": 2200,
+                    "start_time": 2120,
+                    "text": "英文"
+                  },
+                  {
+                    "end_time": 2840,
+                    "start_time": 2760,
+                    "text": "发给"
+                  },
+                  {
+                    "end_time": 3160,
+                    "start_time": 3080,
+                    "text": "小"
+                  },
+                  {
+                    "end_time": 3540,
+                    "start_time": 3460,
+                    "text": "王"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 5.258155302144587
+      }
+    ]
+  },
+  {
+    "wav": "s6.wav",
+    "reference": "周末我想去超市买一些水果和牛奶。",
+    "hypothesis": "周末我想去超市买一些水果和牛奶。",
+    "audio_duration_s": 3.27,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 15,
+    "errors": [],
+    "tail_latency_s": 0.352,
+    "final_at_s": 4.786,
+    "interim_count": 9,
+    "interim_lag_max_s": 0.853,
+    "interim_lag_median_s": 0.549,
+    "interim": [
+      {
+        "t": 2.023,
+        "covered_ms": 340,
+        "lag_s": 0.473,
+        "text": "周末",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.409,
+        "covered_ms": 660,
+        "lag_s": 0.539,
+        "text": "周末我",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 2.707,
+        "covered_ms": 1060,
+        "lag_s": 0.437,
+        "text": "周末我想去",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.059,
+        "covered_ms": 1300,
+        "lag_s": 0.549,
+        "text": "周末我想去超市",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.363,
+        "covered_ms": 1300,
+        "lag_s": 0.853,
+        "text": "周末我想去超市",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 3.673,
+        "covered_ms": 1940,
+        "lag_s": 0.523,
+        "text": "周末我想去超市买一些",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.059,
+        "covered_ms": 2180,
+        "lag_s": 0.669,
+        "text": "周末我想去超市买一些水果",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.575,
+        "covered_ms": 2580,
+        "lag_s": 0.786,
+        "text": "周末我想去超市买一些水果和",
+        "definite": [
+          false
+        ]
+      },
+      {
+        "t": 4.698,
+        "covered_ms": 2740,
+        "lag_s": 0.748,
+        "text": "周末我想去超市买一些水果和牛奶",
+        "definite": [
+          false
+        ]
+      }
+    ],
+    "error": null,
+    "raw_events": [
+      {
+        "seq": null,
+        "flags": 0,
+        "is_last": false,
+        "payload": {
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            }
+          }
+        },
+        "t": 1.4812499030958861
+      },
+      {
+        "seq": 1,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 340,
+                "start_time": 260,
+                "text": "周末",
+                "words": [
+                  {
+                    "end_time": 340,
+                    "start_time": 260,
+                    "text": "周末"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.0227390001527965
+      },
+      {
+        "seq": 2,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1000
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 660,
+                "start_time": 120,
+                "text": "周末我",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 660,
+                    "start_time": 580,
+                    "text": "我"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.4085069820284843
+      },
+      {
+        "seq": 3,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1300
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1060,
+                "start_time": 120,
+                "text": "周末我想去",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 1060,
+                    "start_time": 980,
+                    "text": "想去"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 2.706922532990575
+      },
+      {
+        "seq": 4,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去超市",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1300,
+                "start_time": 120,
+                "text": "周末我想去超市",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1300,
+                    "start_time": 1220,
+                    "text": "超市"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.058627458056435
+      },
+      {
+        "seq": 5,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 1900
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "prefetch": true,
+            "text": "周末我想去超市",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1300,
+                "start_time": 120,
+                "text": "周末我想去超市",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1300,
+                    "start_time": 1220,
+                    "text": "超市"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.3626596571411937
+      },
+      {
+        "seq": 6,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2200
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去超市买一些",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 1940,
+                "start_time": 120,
+                "text": "周末我想去超市买一些",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "超市"
+                  },
+                  {
+                    "end_time": 1640,
+                    "start_time": 1560,
+                    "text": "买"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "一"
+                  },
+                  {
+                    "end_time": 1940,
+                    "start_time": 1860,
+                    "text": "些"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 3.672875725198537
+      },
+      {
+        "seq": 7,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 2600
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去超市买一些水果",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2180,
+                "start_time": 120,
+                "text": "周末我想去超市买一些水果",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "超市"
+                  },
+                  {
+                    "end_time": 1640,
+                    "start_time": 1560,
+                    "text": "买"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "一"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "些"
+                  },
+                  {
+                    "end_time": 2180,
+                    "start_time": 2100,
+                    "text": "水果"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.058701968053356
+      },
+      {
+        "seq": 8,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3100
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去超市买一些水果和",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2580,
+                "start_time": 120,
+                "text": "周末我想去超市买一些水果和",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "超市"
+                  },
+                  {
+                    "end_time": 1640,
+                    "start_time": 1560,
+                    "text": "买"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "一"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "些"
+                  },
+                  {
+                    "end_time": 2040,
+                    "start_time": 1960,
+                    "text": "水果"
+                  },
+                  {
+                    "end_time": 2580,
+                    "start_time": 2500,
+                    "text": "和"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.5754071502014995
+      },
+      {
+        "seq": 9,
+        "flags": 1,
+        "is_last": false,
+        "payload": {
+          "audio_info": {
+            "duration": 3200
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "prefetch": true,
+            "text": "周末我想去超市买一些水果和牛奶",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": false,
+                "end_time": 2740,
+                "start_time": 120,
+                "text": "周末我想去超市买一些水果和牛奶",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "超市"
+                  },
+                  {
+                    "end_time": 1640,
+                    "start_time": 1560,
+                    "text": "买"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "一"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "些"
+                  },
+                  {
+                    "end_time": 2040,
+                    "start_time": 1960,
+                    "text": "水果"
+                  },
+                  {
+                    "end_time": 2440,
+                    "start_time": 2360,
+                    "text": "和"
+                  },
+                  {
+                    "end_time": 2740,
+                    "start_time": 2660,
+                    "text": "牛奶"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.698091869009659
+      },
+      {
+        "seq": 10,
+        "flags": 3,
+        "is_last": true,
+        "payload": {
+          "audio_info": {
+            "duration": 3270
+          },
+          "result": {
+            "additions": {
+              "log_id": "20261121103335A3616853EB4391D255B7"
+            },
+            "text": "周末我想去超市买一些水果和牛奶。",
+            "utterances": [
+              {
+                "additions": {
+                  "fixed_prefix_result": "",
+                  "source": "stream"
+                },
+                "definite": true,
+                "end_time": 2740,
+                "start_time": 120,
+                "text": "周末我想去超市买一些水果和牛奶。",
+                "words": [
+                  {
+                    "end_time": 200,
+                    "start_time": 120,
+                    "text": "周末"
+                  },
+                  {
+                    "end_time": 520,
+                    "start_time": 440,
+                    "text": "我"
+                  },
+                  {
+                    "end_time": 920,
+                    "start_time": 840,
+                    "text": "想去"
+                  },
+                  {
+                    "end_time": 1160,
+                    "start_time": 1080,
+                    "text": "超市"
+                  },
+                  {
+                    "end_time": 1640,
+                    "start_time": 1560,
+                    "text": "买"
+                  },
+                  {
+                    "end_time": 1720,
+                    "start_time": 1640,
+                    "text": "一"
+                  },
+                  {
+                    "end_time": 1800,
+                    "start_time": 1720,
+                    "text": "些"
+                  },
+                  {
+                    "end_time": 2040,
+                    "start_time": 1960,
+                    "text": "水果"
+                  },
+                  {
+                    "end_time": 2440,
+                    "start_time": 2360,
+                    "text": "和"
+                  },
+                  {
+                    "end_time": 2740,
+                    "start_time": 2660,
+                    "text": "牛奶"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "t": 4.786252551013604
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+Warning: Node.js 24.21.0 can cause high temporary memory usage during shell safety checks. Upgrade to Node.js 26.12.1. Qwen Code will continue normally. See https://github.com/QwenLM/qwen-code/issues/15165
+Warning: running headless with --yolo / approval-mode=yolo and no sandbox. All tool calls (shell, write, edit) auto-execute at this process's privilege level. Configure tools.executionSandbox on Linux or a supported legacy sandbox via --sandbox / QWEN_SANDBOX, or set QWEN_CODE_SUPPRESS_YOLO_WARNING=1 to silence this notice.
+Done. Per task_fix_all.md:
+
+**Fix applied (the only edit):** `app/src/main/res/xml/method.xml` — added one line, `android:imeSubtypeLocale="zh_CN"`, to the subtype element. No other attribute touched:
+
+```diff
+     <subtype
+         android:label="@string/subtype_label"
++        android:imeSubtypeLocale="zh_CN"
+         android:imeSubtypeMode="keyboard"
+         android:overridesImplicitlyEnabledSubtype="true"
+         android:isAuxiliary="false" />
+```
+
+**Prior Kotlin fixes verified via `git diff`, all correct, left as-is:**
+1. `VoiceImeService.kt:543` — `currentInputConnection?.sendDownUpKeyEvents(...)` → `sendDownUpKeyEvents(...)`. Correct: `sendDownUpKeyEvents(int)` exists on `InputMethodService`, not on `InputConnection`, so the service-side call is what compiles.
+2. `VoiceImeService.kt:568` — same change for `KEYCODE_ENTER`. Correct.
+3. `GoogleSuggestions.kt:69` — KDoc rewritten without `[[...]]`. Correct.
+4. `UiUtils.kt:15` — `ctx.dp(6)` → `ctx.dp(6f)`; `dp` takes `Float`. Correct.
+
+**Not done, per rules:** no other ocr findings touched, no commit/push (coordinator handles that), no keys used, no files edited besides method.xml. Working tree now has exactly the 3 pre-existing Kotlin modifications plus the method.xml one-liner, ready for the coordinator to commit.

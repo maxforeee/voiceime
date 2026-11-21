@@ -1,0 +1,23 @@
+Warning: Node.js 24.21.0 can cause high temporary memory usage during shell safety checks. Upgrade to Node.js 26.12.1. Qwen Code will continue normally. See https://github.com/QwenLM/qwen-code/issues/15165
+第三轮 A 完成。两个本地提交，未推送：
+
+```
+c8a46fa Route voice final text through backend semantic correction, original-text fallback
+ac9fa0e Voice popup above keyboard + modify button placeholder   ← Chunk 1，先行独立提交
+```
+
+**Part A 改动**（`git diff HEAD~1 --stat`：2 files, +159/−6，仅预期文件）：
+
+1. **新增 `asr/SemanticCorrector.kt`**（86 行）：OkHttp 4.12 POST `{"text":…}` 到 `https://toolseverything.com:442/voiceime-correct/correct`，15s callTimeout/connect/read/write，解析 `{"ok","corrected"}`；任何失败/超时/`ok=false`/空结果一律返回 `null`。异步 enqueue（OkHttp 工作线程），带 `cancel()`，风格与 `GoogleSuggestions` 一致。应用内无任何密钥。
+
+2. **`VoiceImeService.kt` 接线**：
+   - `onAsrFinal` 不再直接上屏：保持 PROCESSING、停录音、popup 显示原文 + "修正中…"（`setPopupCorrecting(true)`），后台调修正，回调经 `handler.post` + `id == sessionId` 守卫。
+   - 成功 → `commitOnce(corrected)`（corrected 为空/null 时回退原文）；失败/超时 → `commitOnce(原文)`。两条路都恰好一次（复用 `commitOnce`），然后 `finishVoiceSession()` 收尾：IDLE、麦克风恢复、状态"已上屏"、popup 按 `POPUP_LINGER_MS`  linger 后消失。
+   - **绝不卡死**：OkHttp 15s 超时必回调，另加 16s `correctionTimeout` 主线程兜底，兜底触发即上屏原文。
+   - **绝不丢字**：修正期间 `pendingOriginal` 标记会话归属——迟到的 `onAsrClosed`/`failSession`（ASR 断连/报错）被忽略，不会拆掉待上屏的文本；`stopVoiceSession(salvage=true)`（切模式/隐藏窗口）优先抢救 final 原文而非旧 interim；`salvage=false`（输入结束）不上屏。
+   - **绝不提交到死连接**：切换/结束时 `sessionId++` + `corrector.cancel()`，迟到回调被守卫丢弃。
+   - interim 依旧只进 popup，从不进输入框。
+
+**未触碰**：DoubaoAsrClient/AudioCapture/AsrProtocol、词库、打字键盘、剪贴板、颜色、popup 内部实现（仅接线）、后端。
+
+**验证**：按规则未跑本地 gradle（无 Android SDK），编译验证留给推送后的 GitHub Actions；已逐行自查 diff 确认语法与 API（OkHttp 4.x Kotlin 扩展、`JSONObject`、既有 handler/sessionId 模式）无误。`app/` 工作树干净，等待下一轮推送。

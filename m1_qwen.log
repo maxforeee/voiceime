@@ -1,0 +1,23 @@
+Warning: Node.js 24.21.0 can cause high temporary memory usage during shell safety checks. Upgrade to Node.js 26.12.1. Qwen Code will continue normally. See https://github.com/QwenLM/qwen-code/issues/15165
+Warning: running headless with --yolo / approval-mode=yolo and no sandbox. All tool calls (shell, write, edit) auto-execute at this process's privilege level. Configure tools.executionSandbox on Linux or a supported legacy sandbox via --sandbox / QWEN_SANDBOX, or set QWEN_CODE_SUPPRESS_YOLO_WARNING=1 to silence this notice.
+**M1 complete — verdict: PASS.** `m1_report.md` is written with measured numbers.
+
+## What was done
+- Built `m1_verify/` harness (tiny, deletable): `gen_audio.py` (Mandarin test audio), `run_m1.py` (streams 16 kHz 16-bit mono PCM in 100 ms real-time chunks to `wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async`, resource `volc.seedasr.sauc.duration`, `X-Api-Key` auth), `sentences.json`, `results.json` (full timestamped raw events).
+- Ran against the **real API** with the key from env `DOUBAO_API_KEY_FROM_CONFIG` only.
+
+## Measured results (6 everyday sentences, 102 chars)
+| Metric | Result |
+|---|---|
+| Accuracy | **CER 0.00% (0/102)** — no misrecognized words |
+| End-of-audio → final | median **0.37 s**, max 1.05 s (≈1.3 s from true speech end incl. 0.25 s silent tail) |
+| Interim updates | every ~0.3–0.45 s while speaking; lag behind speech median **0.65 s**, max 1.56 s — keeps up, no obvious lag |
+
+## Notes
+- No mic on this box → test audio is neural TTS (`zh-CN-XiaoxiaoNeural`), disclosed in the report as a caveat; real-mic re-verification recommended at M2.
+- One harness bug found and fixed mid-run: ffmpeg `silenceremove` truncated audio at internal pauses (first run's 30% CER was the harness's fault, not the ASR's). Corrected with energy-based trimming; reported numbers are from full-length audio.
+- All traffic goes through the box's HTTP proxy; latency includes that path.
+
+## Compliance
+- Key-leak scan across all repo files: **NONE**. Nothing committed or pushed (repo has zero commits; all files untracked). No other project touched. M2 not started.
+Operation cancelled.

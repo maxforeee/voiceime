@@ -1,0 +1,24 @@
+Warning: Node.js 24.21.0 can cause high temporary memory usage during shell safety checks. Upgrade to Node.js 26.12.1. Qwen Code will continue normally. See https://github.com/QwenLM/qwen-code/issues/15165
+Task M2c complete. All 6 chunks + Actions workflow + `m2b_report.md` are committed locally on `main` — **not pushed**.
+
+**Commits (local main):**
+| Chunk | Hash |
+|---|---|
+| 1 skeleton + CI | `83b168e` |
+| 2 T9 keyboard + candidate bar | `d51327b` |
+| 3 lexicon engine + DB | `6e984e0` |
+| 4 online suggestions | `5f0c91e` |
+| 5 voice keyboard + ASR + toggle | `a2777a8` |
+| 6 clipboard + polish | `5515f13` |
+| report | `0d8ceee` |
+
+**Actually verified on this Box (real runs):**
+- Lexicon converter produced a **6.15 MB SQLite DB** (committed in `assets/`; raw 22 MB dicts + freq list gitignored, 0 tracked). Regression against the built DB: **16/16 PASS**, all 8 mandatory cases with ranks matching the verified M2 run (你好/中国/谢谢/再见/什么/我们/我 #1, 练习 #4, 练 #22, 汉 #13 reachable via the top-50 scrollable list), 0.3–3.7 ms/query. Evidence: `tools/lexicon_test_results.json`.
+- Google Input Tools endpoint re-checked live (`nihao`→你好, partial `nih`→你好/你会/你还; shape matches the parser).
+- Static sanity: 14 Kotlin files, balanced delimiters; committed-tree leak scan clean — `DOUBAO` appears only as env/secret/BuildConfig references, no key value anywhere, no secret-like literals.
+
+**Key decisions:** official SpeechEngine SDK did not resolve from Maven (probed: empty ByteDance repo path, 0 Maven Central hits) → per the brief's fallback, the M1-verified WebSocket protocol was ported to Kotlin/OkHttp. Trim policy keeps all single chars + freq≥1 words; rare phrases fall back to per-syllable chars. Voice: hold + tap both wired, interim-only display, final committed exactly once, recording stops on mode switch, empty key → "语音未配置" with typing unaffected; disabled "修改 · v2 即将推出" entry reserved.
+
+**Not verified (stated plainly in the report):** no SDK/device/mic here — the project was **not compiled locally and is not yet built on Actions**; voice end-to-end and the §8 device checklist await the Actions-built APK + M3. License note flagged: LGPLv3/GPLv3-derived DB + unlicensed freq list need compatibility confirmation before any release packaging.
+
+Next step (not this run): push main, optionally set the `DOUBAO_API_KEY_FROM_CONFIG` repo secret, and read the Actions build log.

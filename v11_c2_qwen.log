@@ -1,0 +1,23 @@
+Warning: Node.js 24.21.0 can cause high temporary memory usage during shell safety checks. Upgrade to Node.js 26.12.1. Qwen Code will continue normally. See https://github.com/QwenLM/qwen-code/issues/15165
+Warning: running headless with --yolo / approval-mode=yolo and no sandbox. All tool calls (shell, write, edit) auto-execute at this process's privilege level. Configure tools.executionSandbox on Linux or a supported legacy sandbox via --sandbox / QWEN_SANDBOX, or set QWEN_CODE_SUPPRESS_YOLO_WARNING=1 to silence this notice.
+Chunk 2 完成。改动如下:
+
+**T9KeyboardView.kt**(6 项中的 5 项)
+1. **底行权重**:`row()` 增加 `weights` 参数,主页面与符号页底行均改为 符号/返回 : 空格 : 回车 = **1 : 2 : 1**。
+2. **字母副标签**:`RelativeSizeSpan` 0.5 → **0.65**,颜色由 `key_text_secondary` 改为更深的 `#5F6368`(白底对比度约 5.9:1,清晰可读)。
+3. **键间距**:`gap` 3dp → **4dp**。
+4. **按键预览 + 触感**:ACTION_DOWN 时 `performHapticFeedback(KEYBOARD_TAP)` 并用 `PopupWindow` 在按键正上方弹出放大预览(26sp、取键面首行字符、`isClippingEnabled=false` 允许顶行预览超出键盘窗口);UP/CANCEL 及翻页时 dismiss。触摸监听返回 false,保留原有 click 派发逻辑,`onKey` 行为不变。
+5. **键高上限**:58dp → **62dp**(42–62dp 区间)。另加了一处配套小改动:符号页 6 行改用 `symbolKeyHeight = keyHeight*5/6`,保证符号页总高不超过主页面 5 行总高——这是 Chunk 3「切换页面总高不变」的前提,而 Chunk 3 不允许改本文件,故在此一并处理(整除最多差 5px,方向是偏矮不会溢出)。
+
+**VoiceImeService.kt**(第 6 项)
+- 顶栏剪贴板图标 44dp → **36dp**,切换图标 48dp → **40dp**,共为候选栏让出 16dp。
+
+**验证**:按本次指令未运行 `./gradlew`(本机无 Android SDK),编译验证留待 GitHub Actions;已人工复查语法与 API(`PopupWindow`、`MeasureSpec`、vararg 命名参数等均按现有代码风格使用,`keyBackground`/`dp` 沿用原有包级函数)。未提交、未推送;Lexicon.kt、Candidate.kt、CandidateBar.kt 未触碰。
+
+**git diff --stat**(相对 HEAD,含 Chunk 1 在 VoiceImeService.kt 中已有的未提交改动;本次 Chunk 2 对该文件仅改 2 行图标宽度):
+
+```
+ app/src/main/java/com/voiceime/VoiceImeService.kt  | 38 +++++++--
+ .../main/java/com/voiceime/ui/T9KeyboardView.kt    | 91 ++++++++++++++++++----
+ 2 files changed, 108 insertions(+), 21 deletions(-)
+```

@@ -1,0 +1,299 @@
+{
+  "api": "Google Input Tools (unofficial, no key)",
+  "rounds": [
+    {
+      "q": "nihao",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.173,
+      "success": true,
+      "top_candidates": [
+        "你好",
+        "拟好",
+        "你",
+        "尼",
+        "泥",
+        "拟",
+        "腻",
+        "逆",
+        "妮",
+        "倪"
+      ],
+      "expected": "你好",
+      "expected_found": true
+    },
+    {
+      "q": "nihao",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.157,
+      "success": true,
+      "top_candidates": [
+        "你好",
+        "拟好",
+        "你",
+        "尼",
+        "泥",
+        "拟",
+        "腻",
+        "逆",
+        "妮",
+        "倪"
+      ],
+      "expected": "你好",
+      "expected_found": true
+    },
+    {
+      "q": "zhongguo",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.186,
+      "success": true,
+      "top_candidates": [
+        "中国",
+        "种过",
+        "中",
+        "种",
+        "重",
+        "钟",
+        "众",
+        "忠",
+        "终",
+        "仲"
+      ],
+      "expected": "中国",
+      "expected_found": true
+    },
+    {
+      "q": "zhongguo",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.231,
+      "success": true,
+      "top_candidates": [
+        "中国",
+        "种过",
+        "中",
+        "种",
+        "重",
+        "钟",
+        "众",
+        "忠",
+        "终",
+        "仲"
+      ],
+      "expected": "中国",
+      "expected_found": true
+    },
+    {
+      "q": "xiexie",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.191,
+      "success": true,
+      "top_candidates": [
+        "谢谢",
+        "写写",
+        "歇歇",
+        "写些",
+        "泄泻",
+        "斜斜",
+        "xiexie",
+        "写",
+        "些",
+        "谢"
+      ],
+      "expected": "谢谢",
+      "expected_found": true
+    },
+    {
+      "q": "xiexie",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.177,
+      "success": true,
+      "top_candidates": [
+        "谢谢",
+        "写写",
+        "歇歇",
+        "写些",
+        "泄泻",
+        "斜斜",
+        "xiexie",
+        "写",
+        "些",
+        "谢"
+      ],
+      "expected": "谢谢",
+      "expected_found": true
+    },
+    {
+      "q": "zaijian",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.166,
+      "success": true,
+      "top_candidates": [
+        "再见",
+        "在建",
+        "再建",
+        "在吉安",
+        "在",
+        "再",
+        "载",
+        "仔",
+        "宰",
+        "灾"
+      ],
+      "expected": "再见",
+      "expected_found": true
+    },
+    {
+      "q": "zaijian",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.165,
+      "success": true,
+      "top_candidates": [
+        "再见",
+        "在建",
+        "再建",
+        "在吉安",
+        "在",
+        "再",
+        "载",
+        "仔",
+        "宰",
+        "灾"
+      ],
+      "expected": "再见",
+      "expected_found": true
+    },
+    {
+      "q": "wo",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.166,
+      "success": true,
+      "top_candidates": [
+        "我",
+        "卧",
+        "窝",
+        "喔",
+        "握",
+        "沃",
+        "倭",
+        "涡",
+        "渥",
+        "蜗"
+      ],
+      "expected": "我",
+      "expected_found": true
+    },
+    {
+      "q": "wo",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.158,
+      "success": true,
+      "top_candidates": [
+        "我",
+        "卧",
+        "窝",
+        "喔",
+        "握",
+        "沃",
+        "倭",
+        "涡",
+        "渥",
+        "蜗"
+      ],
+      "expected": "我",
+      "expected_found": true
+    },
+    {
+      "q": "nih",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.109,
+      "success": true,
+      "top_candidates": [
+        "你好",
+        "你会",
+        "你还",
+        "你和",
+        "你很",
+        "拟合",
+        "NIH",
+        "你",
+        "霓虹",
+        "你话"
+      ],
+      "expected": null,
+      "expected_found": null
+    },
+    {
+      "q": "nih",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.165,
+      "success": true,
+      "top_candidates": [
+        "你好",
+        "你会",
+        "你还",
+        "你和",
+        "你很",
+        "拟合",
+        "NIH",
+        "你",
+        "霓虹",
+        "你话"
+      ],
+      "expected": null,
+      "expected_found": null
+    },
+    {
+      "q": "zhongg",
+      "round": 1,
+      "status": 200,
+      "latency_s": 0.178,
+      "success": true,
+      "top_candidates": [
+        "中国",
+        "中共",
+        "忠告",
+        "终归",
+        "重工",
+        "中古",
+        "终稿",
+        "中观",
+        "中高",
+        "中港"
+      ],
+      "expected": null,
+      "expected_found": null
+    },
+    {
+      "q": "zhongg",
+      "round": 2,
+      "status": 200,
+      "latency_s": 0.176,
+      "success": true,
+      "top_candidates": [
+        "中国",
+        "中共",
+        "忠告",
+        "终归",
+        "重工",
+        "中古",
+        "终稿",
+        "中观",
+        "中高",
+        "中港"
+      ],
+      "expected": null,
+      "expected_found": null
+    }
+  ]
+}

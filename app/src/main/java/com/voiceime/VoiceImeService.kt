@@ -154,7 +154,6 @@ class VoiceImeService : InputMethodService() {
     private var popupText: TextView? = null
     private var popupScroll: ScrollView? = null
     private var popupStatus: TextView? = null
-    private var popupEnd: TextView? = null
     private val popupDismiss = Runnable { dismissVoicePopup() }
 
     override fun onCreate() {
@@ -709,25 +708,6 @@ class VoiceImeService : InputMethodService() {
             visibility = View.GONE
             setPadding(0, dp(4f), 0, 0)
         }
-        val end = TextView(this).apply {
-            this.text = getString(R.string.voice_popup_end)
-            textSize = 15f
-            gravity = Gravity.CENTER
-            setTextColor(getColor(R.color.on_accent))
-            background = GradientDrawable().apply {
-                cornerRadius = dp(10f).toFloat()
-                setColor(getColor(R.color.accent))
-            }
-            setPadding(dp(18f), dp(6f), dp(18f), dp(6f))
-            isClickable = true
-            setOnClickListener { stopRecording() }
-        }
-        val endRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END
-            setPadding(0, dp(6f), 0, 0)
-            addView(end, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
@@ -738,7 +718,6 @@ class VoiceImeService : InputMethodService() {
             setPadding(pad, pad, pad, pad)
             addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             addView(status, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-            addView(endRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
         val anchor = voiceView.rootView
         val width = if (anchor.width > 0) anchor.width else LinearLayout.LayoutParams.MATCH_PARENT
@@ -749,7 +728,6 @@ class VoiceImeService : InputMethodService() {
         popupText = text
         popupScroll = scroll
         popupStatus = status
-        popupEnd = end
         setPopupText("")
         setPopupCorrecting(false)
         // Bottom gravity + the input view's own height puts the popup just
@@ -765,8 +743,6 @@ class VoiceImeService : InputMethodService() {
 
     private fun setPopupCorrecting(correcting: Boolean) {
         popupStatus?.visibility = if (correcting) View.VISIBLE else View.GONE
-        popupEnd?.isEnabled = !correcting
-        popupEnd?.alpha = if (correcting) 0.5f else 1f
     }
 
     /** Show a one-line status in the popup (e.g. offline mode). */
@@ -782,7 +758,6 @@ class VoiceImeService : InputMethodService() {
         popupText = null
         popupScroll = null
         popupStatus = null
-        popupEnd = null
     }
 
     // ---- clipboard panel ------------------------------------------------------

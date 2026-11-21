@@ -1,0 +1,1986 @@
+{
+  "dicts": {
+    "luna_pinyin.dict.yaml": {
+      "entries": 70732,
+      "bytes": 889896,
+      "gzip_bytes": 387624
+    },
+    "ice_base.dict.yaml": {
+      "entries": 543423,
+      "bytes": 16609062,
+      "gzip_bytes": 6331442
+    }
+  },
+  "freq_words": 428719,
+  "merged_keys": 464180,
+  "syllables": 424,
+  "parse_s": 5.31,
+  "tests": [
+    {
+      "digits": "64426",
+      "n_segmentations": 12,
+      "segmentations": [
+        "mi ga o",
+        "mi ha o",
+        "mi gan",
+        "mi gao",
+        "mi han",
+        "mi hao",
+        "ni ga o",
+        "ni ha o"
+      ],
+      "candidates": [
+        {
+          "word": "你好",
+          "pinyin": "ni ha o",
+          "freq_log": 4.64
+        },
+        {
+          "word": "密函",
+          "pinyin": "mi han",
+          "freq_log": 1.28
+        },
+        {
+          "word": "密告",
+          "pinyin": "mi ga o",
+          "freq_log": 0.7
+        },
+        {
+          "word": "蜜柑",
+          "pinyin": "mi gan",
+          "freq_log": 0.6
+        },
+        {
+          "word": "米糕",
+          "pinyin": "mi ga o",
+          "freq_log": 0.0
+        },
+        {
+          "word": "拟稿",
+          "pinyin": "ni ga o",
+          "freq_log": 0.0
+        },
+        {
+          "word": "你敢",
+          "pinyin": "ni gan",
+          "freq_log": -1.0
+        },
+        {
+          "word": "你搞",
+          "pinyin": "ni ga o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "拟好",
+          "pinyin": "ni ha o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "泥蚶",
+          "pinyin": "ni han",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 11,
+      "all_ranked": [
+        "你好",
+        "密函",
+        "密告",
+        "蜜柑",
+        "米糕",
+        "拟稿",
+        "你敢",
+        "你搞",
+        "拟好",
+        "泥蚶",
+        "你干"
+      ],
+      "ms": 0.08,
+      "expected_rank_in_top100": {
+        "你好": 1
+      },
+      "note": "nihao (ni hao)",
+      "expected": [
+        "你好"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "64646",
+      "n_segmentations": 10,
+      "segmentations": [
+        "mi mi o",
+        "mi ni o",
+        "mi min",
+        "mi nin",
+        "ni mi o",
+        "ni ni o",
+        "ni min",
+        "ni nin"
+      ],
+      "candidates": [
+        {
+          "per_syllable_chars": [
+            [
+              "米",
+              "日",
+              "迷"
+            ],
+            [
+              "米",
+              "日",
+              "迷"
+            ],
+            [
+              "啊",
+              "哦",
+              "噢"
+            ]
+          ],
+          "segmentation": [
+            "mi",
+            "mi",
+            "o"
+          ]
+        }
+      ],
+      "n_all_hits": 0,
+      "all_ranked": [],
+      "ms": 0.03,
+      "expected_rank_in_top100": {},
+      "note": "task example: NOT nihao keys (nihao=64426)",
+      "expected": [],
+      "expected_found": null
+    },
+    {
+      "digits": "94664486",
+      "n_segmentations": 72,
+      "segmentations": [
+        "xi o mi gu o",
+        "xi o mi hu o",
+        "xi o mi gun",
+        "xi o mi guo",
+        "xi o mi hun",
+        "xi o mi huo",
+        "xi o ni gu o",
+        "xi o ni hu o"
+      ],
+      "candidates": [
+        {
+          "word": "中国",
+          "pinyin": "zhong gu o",
+          "freq_log": 3.74
+        },
+        {
+          "word": "重活",
+          "pinyin": "zhong hu o",
+          "freq_log": 1.51
+        },
+        {
+          "word": "雄浑",
+          "pinyin": "xiong hun",
+          "freq_log": 0.78
+        },
+        {
+          "word": "中火",
+          "pinyin": "zhong hu o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "凶魂",
+          "pinyin": "xiong hun",
+          "freq_log": -1.0
+        },
+        {
+          "word": "种过",
+          "pinyin": "zhong gu o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "忠魂",
+          "pinyin": "zhong hun",
+          "freq_log": -1.0
+        },
+        {
+          "word": "重货",
+          "pinyin": "zhong hu o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "中过",
+          "pinyin": "zhong gu o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "中果",
+          "pinyin": "zhong gu o",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 12,
+      "all_ranked": [
+        "中国",
+        "重活",
+        "雄浑",
+        "中火",
+        "凶魂",
+        "种过",
+        "忠魂",
+        "重货",
+        "中过",
+        "中果",
+        "熊过",
+        "种果"
+      ],
+      "ms": 0.09,
+      "expected_rank_in_top100": {
+        "中国": 1
+      },
+      "note": "zhongguo",
+      "expected": [
+        "中国"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "943943",
+      "n_segmentations": 25,
+      "segmentations": [
+        "xi e xi e",
+        "xi e yi e",
+        "xi e zi e",
+        "xi e xie",
+        "xi e zhe",
+        "yi e xi e",
+        "yi e yi e",
+        "yi e zi e"
+      ],
+      "candidates": [
+        {
+          "word": "谢谢",
+          "pinyin": "xi e xi e",
+          "freq_log": 4.95
+        },
+        {
+          "word": "这些",
+          "pinyin": "zhe xi e",
+          "freq_log": 4.82
+        },
+        {
+          "word": "歇歇",
+          "pinyin": "xi e xi e",
+          "freq_log": 2.08
+        },
+        {
+          "word": "写写",
+          "pinyin": "xi e xi e",
+          "freq_log": 1.62
+        },
+        {
+          "word": "屑屑",
+          "pinyin": "xi e xi e",
+          "freq_log": 0.48
+        },
+        {
+          "word": "斜斜",
+          "pinyin": "xi e xi e",
+          "freq_log": 0.0
+        },
+        {
+          "word": "写着",
+          "pinyin": "xi e zhe",
+          "freq_log": -1.0
+        },
+        {
+          "word": "写些",
+          "pinyin": "xi e xi e",
+          "freq_log": -1.0
+        },
+        {
+          "word": "歇着",
+          "pinyin": "xi e zhe",
+          "freq_log": -1.0
+        },
+        {
+          "word": "斜着",
+          "pinyin": "xi e zhe",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 20,
+      "all_ranked": [
+        "谢谢",
+        "这些",
+        "歇歇",
+        "写写",
+        "屑屑",
+        "斜斜",
+        "写着",
+        "写些",
+        "歇着",
+        "斜着",
+        "挟着",
+        "携着",
+        "遮着",
+        "泄泻",
+        "折褶",
+        "磔磔",
+        "泄瀉",
+        "渫渫",
+        "懾慴",
+        "蟄蟄"
+      ],
+      "ms": 0.06,
+      "expected_rank_in_top100": {
+        "谢谢": 1
+      },
+      "note": "xiexie",
+      "expected": [
+        "谢谢"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "9245426",
+      "n_segmentations": 42,
+      "segmentations": [
+        "wai ji a o",
+        "wai ji an",
+        "wai ji ao",
+        "wai ji bo",
+        "wai li a o",
+        "wai li an",
+        "wai li ao",
+        "wai li bo"
+      ],
+      "candidates": [
+        {
+          "word": "再见",
+          "pinyin": "zai ji an",
+          "freq_log": 4.38
+        },
+        {
+          "word": "外交",
+          "pinyin": "wai ji a o",
+          "freq_log": 2.74
+        },
+        {
+          "word": "再建",
+          "pinyin": "zai ji an",
+          "freq_log": 1.45
+        },
+        {
+          "word": "外间",
+          "pinyin": "wai ji an",
+          "freq_log": 0.9
+        },
+        {
+          "word": "外联",
+          "pinyin": "wai li an",
+          "freq_log": 0.48
+        },
+        {
+          "word": "外教",
+          "pinyin": "wai ji a o",
+          "freq_log": 0.3
+        },
+        {
+          "word": "在建",
+          "pinyin": "zai ji an",
+          "freq_log": 0.0
+        },
+        {
+          "word": "在教",
+          "pinyin": "zai ji a o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "在叫",
+          "pinyin": "zai ji a o",
+          "freq_log": -1.0
+        },
+        {
+          "word": "外键",
+          "pinyin": "wai ji an",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 22,
+      "all_ranked": [
+        "再见",
+        "外交",
+        "再建",
+        "外间",
+        "外联",
+        "外教",
+        "在建",
+        "在教",
+        "在叫",
+        "外键",
+        "再叫",
+        "再交",
+        "再减",
+        "在肩",
+        "在聊",
+        "再聊",
+        "外链",
+        "外角",
+        "崴脚",
+        "再醮",
+        "再练",
+        "在练"
+      ],
+      "ms": 0.07,
+      "expected_rank_in_top100": {
+        "再见": 1
+      },
+      "note": "zaijian",
+      "expected": [
+        "再见"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "96",
+      "n_segmentations": 2,
+      "segmentations": [
+        "wo",
+        "yo"
+      ],
+      "candidates": [
+        {
+          "word": "我",
+          "pinyin": "wo",
+          "freq_log": 6.53
+        },
+        {
+          "word": "喔",
+          "pinyin": "wo",
+          "freq_log": 4.18
+        },
+        {
+          "word": "哟",
+          "pinyin": "yo",
+          "freq_log": 3.38
+        },
+        {
+          "word": "握",
+          "pinyin": "wo",
+          "freq_log": 3.15
+        },
+        {
+          "word": "窝",
+          "pinyin": "wo",
+          "freq_log": 2.99
+        },
+        {
+          "word": "涴",
+          "pinyin": "wo",
+          "freq_log": 2.93
+        },
+        {
+          "word": "唷",
+          "pinyin": "yo",
+          "freq_log": 2.8
+        },
+        {
+          "word": "沃",
+          "pinyin": "wo",
+          "freq_log": 2.59
+        },
+        {
+          "word": "卧",
+          "pinyin": "wo",
+          "freq_log": 2.56
+        },
+        {
+          "word": "喲",
+          "pinyin": "yo",
+          "freq_log": 2.39
+        }
+      ],
+      "n_all_hits": 103,
+      "all_ranked": [
+        "我",
+        "喔",
+        "哟",
+        "握",
+        "窝",
+        "涴",
+        "唷",
+        "沃",
+        "卧",
+        "喲",
+        "臥",
+        "窩",
+        "猧",
+        "渥",
+        "倭",
+        "萵",
+        "蜗",
+        "涡",
+        "渦",
+        "蝸",
+        "龌",
+        "齷",
+        "莴",
+        "幄",
+        "唩",
+        "婐",
+        "婑",
+        "捰",
+        "斡",
+        "㠛",
+        "㦱",
+        "㧴",
+        "㱧",
+        "㹻",
+        "䀑",
+        "䁊",
+        "䂺",
+        "䇶",
+        "䠎",
+        "䩊",
+        "䮸",
+        "䰀",
+        "偓",
+        "媧",
+        "嬒",
+        "捾",
+        "枂",
+        "楃",
+        "涹",
+        "濣",
+        "焥",
+        "矱",
+        "肟",
+        "腛",
+        "蠖",
+        "覣",
+        "踒",
+        "鋈",
+        "雘",
+        "𠪧",
+        "𠷏",
+        "𠿟",
+        "𡁮",
+        "𡎔",
+        "𡑟",
+        "𡖲",
+        "𢦴",
+        "𢫷",
+        "𣁳",
+        "𣂽",
+        "𣇫",
+        "𣚝",
+        "𤆏",
+        "𤉦",
+        "𤡓",
+        "𤻌",
+        "𥄗",
+        "𥑣",
+        "𥟿",
+        "𥪍",
+        "𦤨",
+        "𦯏",
+        "𦰖",
+        "𦳹",
+        "𦷵",
+        "𧤒",
+        "𧥋",
+        "𧶕",
+        "𨁟",
+        "𨌝",
+        "𩈱",
+        "𩐦",
+        "𩟓",
+        "𩣵",
+        "𩭏",
+        "𩭝",
+        "𩮑",
+        "𩷯",
+        "𪁕",
+        "𪁾"
+      ],
+      "ms": 0.1,
+      "expected_rank_in_top100": {
+        "我": 1
+      },
+      "note": "wo",
+      "expected": [
+        "我"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "926",
+      "n_segmentations": 8,
+      "segmentations": [
+        "wa o",
+        "ya o",
+        "za o",
+        "wan",
+        "yan",
+        "yao",
+        "zan",
+        "zao"
+      ],
+      "candidates": [
+        {
+          "word": "要",
+          "pinyin": "ya o",
+          "freq_log": 5.67
+        },
+        {
+          "word": "玩",
+          "pinyin": "wan",
+          "freq_log": 4.45
+        },
+        {
+          "word": "么",
+          "pinyin": "ya o",
+          "freq_log": 4.41
+        },
+        {
+          "word": "完",
+          "pinyin": "wan",
+          "freq_log": 4.39
+        },
+        {
+          "word": "早",
+          "pinyin": "za o",
+          "freq_log": 4.27
+        },
+        {
+          "word": "晚",
+          "pinyin": "wan",
+          "freq_log": 4.23
+        },
+        {
+          "word": "糟",
+          "pinyin": "za o",
+          "freq_log": 3.93
+        },
+        {
+          "word": "药",
+          "pinyin": "ya o",
+          "freq_log": 3.85
+        },
+        {
+          "word": "约",
+          "pinyin": "ya o",
+          "freq_log": 3.79
+        },
+        {
+          "word": "眼",
+          "pinyin": "yan",
+          "freq_log": 3.77
+        }
+      ],
+      "n_all_hits": 1167,
+      "all_ranked": [
+        "要",
+        "玩",
+        "么",
+        "完",
+        "早",
+        "晚",
+        "糟",
+        "药",
+        "约",
+        "眼",
+        "演",
+        "碞",
+        "咬",
+        "咱",
+        "烟",
+        "萬",
+        "造",
+        "樂",
+        "万",
+        "約",
+        "碗",
+        "言",
+        "曼",
+        "赞",
+        "藥",
+        "遭",
+        "澡",
+        "厂",
+        "摇",
+        "丸",
+        "岆",
+        "腰",
+        "厭",
+        "嚴",
+        "邀",
+        "盐",
+        "陶",
+        "弯",
+        "娩",
+        "妖",
+        "煙",
+        "涴",
+        "哇哦",
+        "驗",
+        "俺",
+        "鑰",
+        "腕",
+        "沿",
+        "贊",
+        "掩",
+        "癌",
+        "搖",
+        "紈",
+        "广",
+        "艳",
+        "暫",
+        "严",
+        "验",
+        "宴",
+        "颜",
+        "湾",
+        "咽",
+        "岩",
+        "虐",
+        "妍",
+        "延",
+        "淹",
+        "攒",
+        "燕",
+        "喲",
+        "研",
+        "讚",
+        "湮",
+        "凹",
+        "阉",
+        "顏",
+        "礹",
+        "腌",
+        "暂",
+        "遥",
+        "蔓",
+        "耀",
+        "遙",
+        "繰",
+        "厌",
+        "彎",
+        "炎",
+        "躁",
+        "挽",
+        "艶",
+        "姚",
+        "鹽",
+        "凿",
+        "雁",
+        "燥",
+        "瑶",
+        "幺",
+        "祅",
+        "婉",
+        "羨"
+      ],
+      "ms": 0.96,
+      "expected_rank_in_top100": {
+        "晚": 6,
+        "玩": 2
+      },
+      "note": "wan",
+      "expected": [
+        "晚",
+        "玩"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "7484",
+      "n_segmentations": 5,
+      "segmentations": [
+        "pi ti",
+        "qi ti",
+        "ri ti",
+        "si ti",
+        "shui"
+      ],
+      "candidates": [
+        {
+          "word": "说",
+          "pinyin": "shui",
+          "freq_log": 5.57
+        },
+        {
+          "word": "谁",
+          "pinyin": "shui",
+          "freq_log": 5.03
+        },
+        {
+          "word": "說",
+          "pinyin": "shui",
+          "freq_log": 4.68
+        },
+        {
+          "word": "睡",
+          "pinyin": "shui",
+          "freq_log": 4.31
+        },
+        {
+          "word": "水",
+          "pinyin": "shui",
+          "freq_log": 4.24
+        },
+        {
+          "word": "誰",
+          "pinyin": "shui",
+          "freq_log": 4.02
+        },
+        {
+          "word": "气体",
+          "pinyin": "qi ti",
+          "freq_log": 2.84
+        },
+        {
+          "word": "税",
+          "pinyin": "shui",
+          "freq_log": 2.69
+        },
+        {
+          "word": "稅",
+          "pinyin": "shui",
+          "freq_log": 2.2
+        },
+        {
+          "word": "説",
+          "pinyin": "shui",
+          "freq_log": 1.98
+        }
+      ],
+      "n_all_hits": 51,
+      "all_ranked": [
+        "说",
+        "谁",
+        "說",
+        "睡",
+        "水",
+        "誰",
+        "气体",
+        "税",
+        "稅",
+        "説",
+        "蜕",
+        "氵",
+        "蛻",
+        "閖",
+        "砌体",
+        "四体",
+        "七题",
+        "泣涕",
+        "䴙䴘",
+        "披剃",
+        "㥨",
+        "㽷",
+        "䬽",
+        "䭨",
+        "䳠",
+        "娷",
+        "帨",
+        "挩",
+        "捝",
+        "涗",
+        "涚",
+        "祱",
+        "脽",
+        "螁",
+        "裞",
+        "𠻜",
+        "𡯑",
+        "𡱊",
+        "𢇤",
+        "𢏅",
+        "𤆙",
+        "𥌘",
+        "𥫸",
+        "𦙙",
+        "𦣢",
+        "𧀣",
+        "𨓚",
+        "𨿠",
+        "𩟥",
+        "𩩞",
+        "氺"
+      ],
+      "ms": 0.05,
+      "expected_rank_in_top100": {
+        "水": 5
+      },
+      "note": "shui",
+      "expected": [
+        "水"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "5426",
+      "n_segmentations": 14,
+      "segmentations": [
+        "ji a o",
+        "ji an",
+        "ji ao",
+        "ji bo",
+        "li a o",
+        "li an",
+        "li ao",
+        "li bo"
+      ],
+      "candidates": [
+        {
+          "word": "了",
+          "pinyin": "li a o",
+          "freq_log": 6.26
+        },
+        {
+          "word": "叫",
+          "pinyin": "ji a o",
+          "freq_log": 4.92
+        },
+        {
+          "word": "见",
+          "pinyin": "ji an",
+          "freq_log": 4.65
+        },
+        {
+          "word": "件",
+          "pinyin": "ji an",
+          "freq_log": 4.59
+        },
+        {
+          "word": "开",
+          "pinyin": "ji an",
+          "freq_log": 4.5
+        },
+        {
+          "word": "見",
+          "pinyin": "ji an",
+          "freq_log": 4.18
+        },
+        {
+          "word": "连",
+          "pinyin": "li an",
+          "freq_log": 4.18
+        },
+        {
+          "word": "教",
+          "pinyin": "ji a o",
+          "freq_log": 4.13
+        },
+        {
+          "word": "覺",
+          "pinyin": "ji a o",
+          "freq_log": 4.06
+        },
+        {
+          "word": "间",
+          "pinyin": "ji an",
+          "freq_log": 4.03
+        }
+      ],
+      "n_all_hits": 1091,
+      "all_ranked": [
+        "了",
+        "叫",
+        "见",
+        "件",
+        "开",
+        "見",
+        "连",
+        "教",
+        "覺",
+        "间",
+        "脸",
+        "乔",
+        "脚",
+        "間",
+        "錢",
+        "聊",
+        "咬",
+        "交",
+        "剑",
+        "建",
+        "瞷",
+        "练",
+        "連",
+        "捡",
+        "翴",
+        "佬",
+        "剪",
+        "觉",
+        "角",
+        "较",
+        "簡",
+        "聯",
+        "料",
+        "臉",
+        "零",
+        "腳",
+        "檢",
+        "瞭",
+        "简",
+        "箭",
+        "贱",
+        "恋",
+        "監",
+        "礛",
+        "校",
+        "喬",
+        "尖",
+        "堅",
+        "練",
+        "較",
+        "焦",
+        "兼",
+        "检",
+        "憐",
+        "戀",
+        "确",
+        "肩",
+        "减",
+        "莲",
+        "搅",
+        "舰",
+        "浅",
+        "嚼",
+        "监",
+        "煎",
+        "键",
+        "療",
+        "联",
+        "酵",
+        "链",
+        "胶",
+        "娇",
+        "嘞",
+        "健",
+        "辽",
+        "減",
+        "浇",
+        "跤",
+        "奸",
+        "賤",
+        "閒",
+        "利奥",
+        "溅",
+        "驕",
+        "劍",
+        "叽",
+        "缴",
+        "矫",
+        "廉",
+        "撿",
+        "膠",
+        "渐",
+        "鉴",
+        "漸",
+        "荐",
+        "坚",
+        "絞",
+        "炼",
+        "姦",
+        "撩"
+      ],
+      "ms": 0.77,
+      "expected_rank_in_top100": {
+        "练": 22
+      },
+      "note": "lian",
+      "expected": [
+        "练"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "426",
+      "n_segmentations": 6,
+      "segmentations": [
+        "ga o",
+        "ha o",
+        "gan",
+        "gao",
+        "han",
+        "hao"
+      ],
+      "candidates": [
+        {
+          "word": "好",
+          "pinyin": "ha o",
+          "freq_log": 5.75
+        },
+        {
+          "word": "和",
+          "pinyin": "han",
+          "freq_log": 5.43
+        },
+        {
+          "word": "干",
+          "pinyin": "gan",
+          "freq_log": 4.77
+        },
+        {
+          "word": "搞",
+          "pinyin": "ga o",
+          "freq_log": 4.46
+        },
+        {
+          "word": "号",
+          "pinyin": "ha o",
+          "freq_log": 4.4
+        },
+        {
+          "word": "高",
+          "pinyin": "ga o",
+          "freq_log": 4.32
+        },
+        {
+          "word": "敢",
+          "pinyin": "gan",
+          "freq_log": 4.3
+        },
+        {
+          "word": "幹",
+          "pinyin": "gan",
+          "freq_log": 3.94
+        },
+        {
+          "word": "赶",
+          "pinyin": "gan",
+          "freq_log": 3.74
+        },
+        {
+          "word": "感",
+          "pinyin": "gan",
+          "freq_log": 3.73
+        }
+      ],
+      "n_all_hits": 626,
+      "all_ranked": [
+        "好",
+        "和",
+        "干",
+        "搞",
+        "号",
+        "高",
+        "敢",
+        "幹",
+        "赶",
+        "感",
+        "告",
+        "喊",
+        "汉",
+        "號",
+        "趕",
+        "赣",
+        "乾",
+        "杆",
+        "韩",
+        "厂",
+        "汗",
+        "含",
+        "焊",
+        "柑",
+        "漢",
+        "秆",
+        "憾",
+        "浩",
+        "咁",
+        "肝",
+        "糕",
+        "耗",
+        "甘",
+        "翰",
+        "豪",
+        "稿",
+        "韓",
+        "寒",
+        "嚎",
+        "膏",
+        "閣",
+        "竿",
+        "函",
+        "攪",
+        "尷",
+        "悍",
+        "罕",
+        "旱",
+        "郝",
+        "籇",
+        "憨",
+        "桿",
+        "橄",
+        "睪",
+        "毫",
+        "犴",
+        "咎",
+        "秏",
+        "釬",
+        "淏",
+        "麾",
+        "镐",
+        "昊",
+        "蚝",
+        "壕",
+        "窖",
+        "睾",
+        "篙",
+        "撼",
+        "捍",
+        "皐",
+        "涵",
+        "鶴",
+        "盰",
+        "玵",
+        "尴",
+        "猂",
+        "皓",
+        "縞",
+        "虷",
+        "蒿",
+        "擀",
+        "甝",
+        "貉",
+        "扞",
+        "皋",
+        "碻",
+        "酣",
+        "嗥",
+        "杲",
+        "鼾",
+        "髇",
+        "芉",
+        "旰",
+        "羔",
+        "誥",
+        "泔",
+        "蠔",
+        "涸",
+        "酐"
+      ],
+      "ms": 0.33,
+      "expected_rank_in_top100": {
+        "汉": 13
+      },
+      "note": "han",
+      "expected": [
+        "汉"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "84",
+      "n_segmentations": 1,
+      "segmentations": [
+        "ti"
+      ],
+      "candidates": [
+        {
+          "word": "替",
+          "pinyin": "ti",
+          "freq_log": 4.03
+        },
+        {
+          "word": "达",
+          "pinyin": "ti",
+          "freq_log": 4.01
+        },
+        {
+          "word": "提",
+          "pinyin": "ti",
+          "freq_log": 3.96
+        },
+        {
+          "word": "踢",
+          "pinyin": "ti",
+          "freq_log": 3.67
+        },
+        {
+          "word": "體",
+          "pinyin": "ti",
+          "freq_log": 3.32
+        },
+        {
+          "word": "題",
+          "pinyin": "ti",
+          "freq_log": 3.3
+        },
+        {
+          "word": "体",
+          "pinyin": "ti",
+          "freq_log": 3.21
+        },
+        {
+          "word": "弟",
+          "pinyin": "ti",
+          "freq_log": 3.04
+        },
+        {
+          "word": "梯",
+          "pinyin": "ti",
+          "freq_log": 2.84
+        },
+        {
+          "word": "剃",
+          "pinyin": "ti",
+          "freq_log": 2.77
+        }
+      ],
+      "n_all_hits": 215,
+      "all_ranked": [
+        "替",
+        "达",
+        "提",
+        "踢",
+        "體",
+        "題",
+        "体",
+        "弟",
+        "梯",
+        "剃",
+        "题",
+        "堤",
+        "缇",
+        "睇",
+        "蹄",
+        "睼",
+        "娣",
+        "剔",
+        "笹",
+        "禔",
+        "嚏",
+        "瑅",
+        "啼",
+        "惕",
+        "倜",
+        "屜",
+        "俶",
+        "媞",
+        "籊",
+        "鹈",
+        "厗",
+        "涕",
+        "碮",
+        "緹",
+        "迖",
+        "逖",
+        "荑",
+        "啻",
+        "鵜",
+        "屉",
+        "悌",
+        "锑",
+        "鷉",
+        "揥",
+        "疐",
+        "醍",
+        "媂",
+        "擿",
+        "棣",
+        "隄",
+        "鯷",
+        "裼",
+        "㔸",
+        "㖒",
+        "㖷",
+        "㗣",
+        "㡗",
+        "㣢",
+        "㥴",
+        "㬱",
+        "㯩",
+        "䄺",
+        "䅠",
+        "䈕",
+        "䌡",
+        "䎮",
+        "䔶",
+        "䖙",
+        "䙗",
+        "䚣",
+        "䛱",
+        "䞶",
+        "䢰",
+        "䣟",
+        "䣠",
+        "䣽",
+        "䨑",
+        "䩟",
+        "䪆",
+        "䬫",
+        "䬾",
+        "䯜",
+        "䱱",
+        "䴘",
+        "䶏",
+        "䶑",
+        "偍",
+        "嗁",
+        "嚔",
+        "埞",
+        "崹",
+        "悐",
+        "惖",
+        "惿",
+        "懥",
+        "戻",
+        "挮",
+        "掦",
+        "朑",
+        "歒"
+      ],
+      "ms": 0.31,
+      "expected_rank_in_top100": {
+        "体": 7
+      },
+      "note": "ti",
+      "expected": [
+        "体"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "2",
+      "n_segmentations": 1,
+      "segmentations": [
+        "a"
+      ],
+      "candidates": [
+        {
+          "word": "啊",
+          "pinyin": "a",
+          "freq_log": 5.45
+        },
+        {
+          "word": "阿",
+          "pinyin": "a",
+          "freq_log": 3.62
+        },
+        {
+          "word": "呵",
+          "pinyin": "a",
+          "freq_log": 3.04
+        },
+        {
+          "word": "腌",
+          "pinyin": "a",
+          "freq_log": 2.31
+        },
+        {
+          "word": "吖",
+          "pinyin": "a",
+          "freq_log": 1.83
+        },
+        {
+          "word": "ㄚ",
+          "pinyin": "a",
+          "freq_log": 1.79
+        },
+        {
+          "word": "吁",
+          "pinyin": "a",
+          "freq_log": 1.78
+        },
+        {
+          "word": "嗄",
+          "pinyin": "a",
+          "freq_log": 1.43
+        },
+        {
+          "word": "錒",
+          "pinyin": "a",
+          "freq_log": 0.0
+        },
+        {
+          "word": "锕",
+          "pinyin": "a",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 13,
+      "all_ranked": [
+        "啊",
+        "阿",
+        "呵",
+        "腌",
+        "吖",
+        "ㄚ",
+        "吁",
+        "嗄",
+        "錒",
+        "锕",
+        "𠼞",
+        "𥥩",
+        "𨉚"
+      ],
+      "ms": 0.04,
+      "expected_rank_in_top100": {
+        "啊": 1
+      },
+      "note": "a",
+      "expected": [
+        "啊"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "743663",
+      "n_segmentations": 55,
+      "segmentations": [
+        "pi e o o e",
+        "pi e o me",
+        "pi e o ne",
+        "pi e mo e",
+        "pi en o e",
+        "pi en me",
+        "pi en ne",
+        "pi fo o e"
+      ],
+      "candidates": [
+        {
+          "word": "什么",
+          "pinyin": "shen me",
+          "freq_log": 5.65
+        },
+        {
+          "word": "什麼",
+          "pinyin": "shen me",
+          "freq_log": 4.65
+        },
+        {
+          "word": "甚麼",
+          "pinyin": "shen me",
+          "freq_log": 1.0
+        }
+      ],
+      "n_all_hits": 3,
+      "all_ranked": [
+        "什么",
+        "什麼",
+        "甚麼"
+      ],
+      "ms": 0.1,
+      "expected_rank_in_top100": {
+        "什么": 1
+      },
+      "note": "shenme (shen me)",
+      "expected": [
+        "什么"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "94664936",
+      "n_segmentations": 48,
+      "segmentations": [
+        "xi o mi ye o",
+        "xi o mi ze o",
+        "xi o mi wen",
+        "xi o mi zen",
+        "xi o ni ye o",
+        "xi o ni ze o",
+        "xi o ni wen",
+        "xi o ni zen"
+      ],
+      "candidates": [
+        {
+          "word": "中文",
+          "pinyin": "zhong wen",
+          "freq_log": 2.81
+        },
+        {
+          "word": "雄文",
+          "pinyin": "xiong wen",
+          "freq_log": -1.0
+        },
+        {
+          "word": "雄蚊",
+          "pinyin": "xiong wen",
+          "freq_log": -1.0
+        },
+        {
+          "word": "重文",
+          "pinyin": "zhong wen",
+          "freq_log": -1.0
+        }
+      ],
+      "n_all_hits": 4,
+      "all_ranked": [
+        "中文",
+        "雄文",
+        "雄蚊",
+        "重文"
+      ],
+      "ms": 0.09,
+      "expected_rank_in_top100": {
+        "中文": 1
+      },
+      "note": "zhongwen",
+      "expected": [
+        "中文"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "542694",
+      "n_segmentations": 42,
+      "segmentations": [
+        "ji a o xi",
+        "ji a o yi",
+        "ji a o zi",
+        "ji an xi",
+        "ji an yi",
+        "ji an zi",
+        "ji ao xi",
+        "ji ao yi"
+      ],
+      "candidates": [
+        {
+          "word": "联系",
+          "pinyin": "li an xi",
+          "freq_log": 3.93
+        },
+        {
+          "word": "建议",
+          "pinyin": "ji an yi",
+          "freq_log": 3.8
+        },
+        {
+          "word": "交易",
+          "pinyin": "ji a o yi",
+          "freq_log": 3.77
+        },
+        {
+          "word": "练习",
+          "pinyin": "li an xi",
+          "freq_log": 3.43
+        },
+        {
+          "word": "链子",
+          "pinyin": "li an zi",
+          "freq_log": 2.42
+        },
+        {
+          "word": "饺子",
+          "pinyin": "ji a o zi",
+          "freq_log": 2.21
+        },
+        {
+          "word": "剪子",
+          "pinyin": "ji an zi",
+          "freq_log": 2.15
+        },
+        {
+          "word": "教义",
+          "pinyin": "ji a o yi",
+          "freq_log": 2.14
+        },
+        {
+          "word": "奸细",
+          "pinyin": "ji an xi",
+          "freq_log": 2.08
+        },
+        {
+          "word": "简易",
+          "pinyin": "ji an yi",
+          "freq_log": 1.98
+        }
+      ],
+      "n_all_hits": 72,
+      "all_ranked": [
+        "联系",
+        "建议",
+        "交易",
+        "练习",
+        "链子",
+        "饺子",
+        "剪子",
+        "教义",
+        "奸细",
+        "简易",
+        "见习",
+        "帘子",
+        "教子",
+        "轿子",
+        "料子",
+        "检疫",
+        "联谊",
+        "间隙",
+        "涟漪",
+        "坚毅",
+        "交椅",
+        "怜惜",
+        "尖子",
+        "茧子",
+        "骄子",
+        "角子",
+        "莲子",
+        "交谊",
+        "嚼子",
+        "胶子",
+        "联席",
+        "聊以",
+        "毽子",
+        "健怡",
+        "腱子",
+        "减息",
+        "脸子",
+        "教习",
+        "教益",
+        "尖细",
+        "交子",
+        "間隙",
+        "较易",
+        "辽西",
+        "简析",
+        "较细",
+        "减资",
+        "练字",
+        "较稀",
+        "检字",
+        "连字",
+        "教仪",
+        "炼字",
+        "浇熄",
+        "胶衣",
+        "渐稀",
+        "骄恣",
+        "减一",
+        "窖子",
+        "剑意",
+        "殓衣",
+        "湔洗",
+        "奁资",
+        "娇逸",
+        "藠子",
+        "涧溪",
+        "酵子",
+        "踺子",
+        "僥傒",
+        "驕恣",
+        "閒隙",
+        "趼子"
+      ],
+      "ms": 0.2,
+      "expected_rank_in_top100": {
+        "练习": 4
+      },
+      "note": "lianxi",
+      "expected": [
+        "练习"
+      ],
+      "expected_found": true
+    },
+    {
+      "digits": "96636",
+      "n_segmentations": 14,
+      "segmentations": [
+        "wo o e o",
+        "wo o en",
+        "wo o fo",
+        "wo me o",
+        "wo ne o",
+        "wo men",
+        "wo nen",
+        "yo o e o"
+      ],
+      "candidates": [
+        {
+          "word": "我们",
+          "pinyin": "wo men",
+          "freq_log": 5.83
+        },
+        {
+          "per_syllable_chars": [
+            [
+              "我",
+              "喔",
+              "握"
+            ],
+            [
+              "啊",
+              "哦",
+              "噢"
+            ],
+            [
+              "我",
+              "哦",
+              "呃"
+            ],
+            [
+              "啊",
+              "哦",
+              "噢"
+            ]
+          ],
+          "segmentation": [
+            "wo",
+            "o",
+            "e",
+            "o"
+          ]
+        }
+      ],
+      "n_all_hits": 1,
+      "all_ranked": [
+        "我们"
+      ],
+      "ms": 0.05,
+      "expected_rank_in_top100": {
+        "我们": 1
+      },
+      "note": "women",
+      "expected": [
+        "我们"
+      ],
+      "expected_found": true
+    }
+  ],
+  "prefix_tests": [
+    {
+      "digits": "644",
+      "n_prefix_hits": 274,
+      "top": [
+        {
+          "word": "你好",
+          "pinyin": "nihao"
+        },
+        {
+          "word": "迷惑",
+          "pinyin": "mihuo"
+        },
+        {
+          "word": "迷宫",
+          "pinyin": "migong"
+        },
+        {
+          "word": "尼古拉斯",
+          "pinyin": "nigulasi"
+        },
+        {
+          "word": "尼古拉",
+          "pinyin": "nigula"
+        },
+        {
+          "word": "迷航",
+          "pinyin": "mihang"
+        },
+        {
+          "word": "迷幻药",
+          "pinyin": "mihuanyao"
+        },
+        {
+          "word": "迷糊",
+          "pinyin": "mihu"
+        },
+        {
+          "word": "迷幻",
+          "pinyin": "mihuan"
+        },
+        {
+          "word": "米格",
+          "pinyin": "mige"
+        }
+      ],
+      "ms": 274.64
+    },
+    {
+      "digits": "96",
+      "n_prefix_hits": 11266,
+      "top": [
+        {
+          "word": "我",
+          "pinyin": "wo"
+        },
+        {
+          "word": "我们",
+          "pinyin": "women"
+        },
+        {
+          "word": "有",
+          "pinyin": "you"
+        },
+        {
+          "word": "走",
+          "pinyin": "zou"
+        },
+        {
+          "word": "用",
+          "pinyin": "yong"
+        },
+        {
+          "word": "从",
+          "pinyin": "zong"
+        },
+        {
+          "word": "我会",
+          "pinyin": "wohui"
+        },
+        {
+          "word": "有人",
+          "pinyin": "youren"
+        },
+        {
+          "word": "有点",
+          "pinyin": "youdian"
+        },
+        {
+          "word": "永远",
+          "pinyin": "yongyuan"
+        }
+      ],
+      "ms": 277.95
+    },
+    {
+      "digits": "94",
+      "n_prefix_hits": 66927,
+      "top": [
+        {
+          "word": "这",
+          "pinyin": "zhe"
+        },
+        {
+          "word": "这",
+          "pinyin": "zhei"
+        },
+        {
+          "word": "一",
+          "pinyin": "yi"
+        },
+        {
+          "word": "想",
+          "pinyin": "xiang"
+        },
+        {
+          "word": "知道",
+          "pinyin": "zhidao"
+        },
+        {
+          "word": "一个",
+          "pinyin": "yige"
+        },
+        {
+          "word": "着",
+          "pinyin": "zhao"
+        },
+        {
+          "word": "着",
+          "pinyin": "zhuo"
+        },
+        {
+          "word": "现在",
+          "pinyin": "xianzai"
+        },
+        {
+          "word": "这个",
+          "pinyin": "zhege"
+        }
+      ],
+      "ms": 281.56
+    }
+  ]
+}

@@ -1,0 +1,400 @@
+[ocr] WARNING: skipping app/src/main/assets/lexicon.db (6148096 bytes exceeds 2097152-byte scan limit; raise MaxTokens if the real concern is token budget, not memory)
+[ocr] full-scan: 27 file(s) discovered, reviewing 27 in /workspace/voiceime
+[ocr] estimated cost: ~27 file(s), est. 544K input + 137K output ≈ 681K total tokens (rough; actual reported after run)
+[ocr] scan dispatch: 3 batch(es) by by-language strategy
+[ocr]   ▶ file_find query_name=AsrProtocol
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ code_search search_text=DoubaoAsrClient
+[ocr]   ▶ code_search search_text=PermissionActivity
+[ocr]   ✔ code_search (21ms)
+[ocr]   ▶ code_search search_text=theme
+[ocr]   ✔ code_search (27ms)
+[ocr]   ✔ code_search (3ms)
+[ocr]   ▶ code_search search_text=CandidateProvider
+[ocr]   ✔ code_search (10ms)
+[ocr]   ▶ code_search search_text=CandidateResult
+[ocr]   ✔ code_search (8ms)
+[ocr]   ▶ code_search search_text=parseResponse
+[ocr]   ✔ code_search (12ms)
+[ocr]   ▶ code_search search_text=audioPacket|fullClientRequest
+[ocr]   ✔ code_search (12ms)
+[ocr]   ▶ code_search search_text=AudioCapture|\.stop\(\)|onChunk use_perl_regexp=true file_patterns=[*.kt]
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/asr/AsrProtocol.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=280 end_line=400
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/AndroidManifest.xml start_line=20 end_line=40
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=280 end_line=330
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read end_line=130 file_path=app/src/main/java/com/voiceime/lexicon/Lexicon.kt start_line=55
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read start_line=50 end_line=130
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=340 end_line=450
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=400 end_line=470
+[ocr]   ✔ file_read (1ms)
+[ocr]   ▶ file_read start_line=25 end_line=70 file_path=app/src/main/java/com/voiceime/lexicon/Lexicon.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=interface CandidateProvider
+[ocr]   ✔ code_search (15ms)
+[ocr]   ▶ code_search search_text=class CandidateResult
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/lexicon/Lexicon.kt start_line=130 end_line=215
+[ocr]   ✔ file_read (1ms)
+[ocr]   ✔ code_search (15ms)
+[ocr]   ▶ code_search search_text=class Candidate
+[ocr]   ✔ code_search (13ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/Candidate.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search use_perl_regexp=true search_text=pinyinFor|fun rememberTap|fun lookup|fun prepare
+[ocr]   ✔ code_search (25ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search search_text=fun Context.dp
+[ocr]   ✔ code_search (15ms)
+[ocr]   ▶ file_find query_name=Candidate
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search search_text=fun Context.dp
+[ocr]   ▶ code_search search_text=fun request|fun cancel use_perl_regexp=true
+[ocr]   ✔ code_search (12ms)
+[ocr]   ▶ code_search search_text=fun keyBackground
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search use_perl_regexp=true
+[ocr]   ✔ code_search (2ms)
+[ocr]   ▶ code_search search_text=fun showMain|fun showSymbols|var onKey use_perl_regexp=true
+[ocr]   ✔ code_search (4ms)
+[ocr]   ✔ code_search (17ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search search_text=fun Context.dp
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/values/]
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/Candidate.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ✔ code_search (19ms)
+[ocr]   ▶ code_search search_text=fun keyBackground
+[ocr]   ✔ code_search (16ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/values/*.xml] use_perl_regexp=true search_text=keyboard_bg|key_text_secondary|key_text
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_search user_perl_regexp=true
+[ocr]   ✔ code_search (16ms)
+[ocr]   ▶ code_search user_perl_regexp=true file_patterns=[app/src/main/res/values/*.xml]
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ file_find query_name=colors
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search use_perl_regexp=true file_patterns=[app/src/main/java/com/voiceime/asr/]
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=fun all|fun add|fun clear use_perl_regexp=true
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search search_text=key_bg_pressed|key_function_bg|key_bg file_patterns=[app/src/main/res/values/*.xml] use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=keyBackground|\.dp\( use_perl_regexp=true
+[ocr]   ✔ code_search (24ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/ui/UiUtils.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=strings.xml
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ file_find query_name=colors.xml
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search search_text=fun dp( file_patterns=[app/src/]
+[ocr]   ✔ code_search (15ms)
+[ocr]   ▶ code_search file_patterns=[app/src/] search_text=fun keyBackground
+[ocr]   ✔ code_search (15ms)
+[ocr]   ▶ code_search search_text=name=" file_patterns=[app/src/main/res/values/colors.xml]
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=minSdk
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/strings.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/colors.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search use_perl_regexp=true file_patterns=[app/src/main/res/values/colors.xml]
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_search search_text=T9KeyboardView|showMain|showSymbols|onKey file_patterns=[app/src/main/java/] use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/ui/UiUtils.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/values/] use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=class AudioCapture
+[ocr]   ✔ code_search (19ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/] use_perl_regexp=true
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_search use_perl_regexp=true file_patterns=[app/src/main/res/]
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/] search_text=CandidateBar
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/ui/UiUtils.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=485 end_line=520
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/] use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/asr/AudioCapture.kt start_line=10 end_line=30
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=ic_clipboard
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ file_find query_name=PermissionActivity
+[ocr]   ✔ file_find (4ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=520 end_line=560
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=ic_mic_white
+[ocr]   ✔ file_find (2ms)
+[ocr]   ▶ code_search search_text=VoiceKeyboardView file_patterns=[app/src/main/]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=ic_mic
+[ocr]   ✔ file_find (3ms)
+[ocr]   ▶ file_find query_name=ic_keyboard
+[ocr]   ✔ file_find (4ms)
+[ocr]   ▶ code_search search_text=fun dp file_patterns=[app/src/main/java/com/voiceime/ui/]
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=140 end_line=200
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=dp( file_patterns=[app/src/main/java/com/voiceime/ui/] use_perl_regexp=true
+[ocr]   ✘ code_search failed: git grep failed: exit status 128: fatal: -e option, 'dp(': missing closing parenthesis
+[ocr]   ▶ code_search use_perl_regexp=true
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search search_text=dp
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search use_perl_regexp=true search_text=VoiceState|fun startRecording|fun stopRecording
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search search_text=fun View.dp|fun Context.dp|fun dp( use_perl_regexp=true
+[ocr]   ✘ code_search failed: git grep failed: exit status 128: fatal: -e option, 'fun View.dp|fun Context.dp|fun dp(': missing closing parenthesis
+[ocr]   ▶ code_search use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=dp file_patterns=[app/src/main/java/com/voiceime/ui/*.kt]
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ file_read start_line=20 end_line=40 file_path=app/src/main/java/com/voiceime/lexicon/Lexicon.kt
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=DOUBAO_API_KEY file_patterns=[app/build.gradle app/build.gradle.kts]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search file_patterns=[app/build.gradle.kts] search_text=buildConfig
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ file_read start_line=30 end_line=80
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (1ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/com/voiceime/] search_text=candidateProvider
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (2ms)
+[ocr] scan dedup batch #0: 47 → 45 comments
+[ocr]   ▶ code_search search_text=applicationId|namespace file_patterns=[app/build.gradle.kts app/build.gradle]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=build.gradle.kts
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ file_find query_name=AndroidManifest
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ file_find query_name=settings.gradle
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ file_find query_name=build.gradle
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ file_find query_name=build.gradle
+[ocr]   ✔ file_find (7ms)
+[ocr]   ▶ file_read file_path=build.gradle.kts
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/AndroidManifest.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=settings.gradle.kts
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/build.gradle.kts
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/build.gradle.kts
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=res/xml
+[ocr]   ✔ file_find (7ms)
+[ocr]   ▶ file_find query_name=res/values
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search search_text=kotlin.android file_patterns=[*.kts *.gradle]
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ code_search file_patterns=[app/src/] use_perl_regexp=true
+[ocr]   ✔ code_search (27ms)
+[ocr]   ▶ code_search search_text=DOUBAO_API_KEY
+[ocr]   ✔ code_search (10ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/] use_perl_regexp=true
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/strings.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=build.gradle.kts
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=mipmap
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ file_find query_name=xml/method.xml
+[ocr]   ✔ file_find (4ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/res/xml/method.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/com/voiceime/] use_perl_regexp=true search_text=import 
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ file_find query_name=res/drawable
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search file_patterns=[app/src/] search_text=fun Int\.dp|fun Float\.dp use_perl_regexp=true
+[ocr]   ✔ code_search (16ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/com/voiceime/ui/] search_text=\.dp\( use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ file_find query_name=com/voiceime/Candidate
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ code_search search_text=PermissionActivity
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/java/com/voiceime/] search_text=R\.(drawable|color|mipmap|layout)\. use_perl_regexp=true
+[ocr]   ✔ code_search (8ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/colors.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (1ms)
+[ocr]   ▶ code_search search_text=ic_launcher_foreground
+[ocr]   ✔ code_search (16ms)
+[ocr]   ▶ code_search search_text=name="accent"
+[ocr]   ✔ code_search (14ms)
+[ocr]   ▶ code_search search_text=@color/ file_patterns=[app/src/main/res/layout/]
+[ocr]   ✘ code_search failed: git grep failed: exit status 1: warning: could not open directory 'app/src/main/res/layout/': No such file or directory
+[ocr]   ▶ code_search search_text=R.color. file_patterns=[*.kt *.java]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search search_text=class VoiceImeService
+[ocr]   ▶ file_find query_name=ic_launcher
+[ocr]   ✔ file_find (6ms)
+[ocr]   ▶ code_search search_text=ic_launcher_foreground
+[ocr]   ✔ code_search (24ms)
+[ocr]   ▶ file_find query_name=xml/method
+[ocr]   ✔ code_search (15ms)
+[ocr]   ✔ file_find (8ms)
+[ocr]   ▶ code_search search_text=ic_mic_white
+[ocr]   ✔ code_search (13ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/drawable/*.xml] search_text=android:tint
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read start_line=1 end_line=90
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=ic_launcher_foreground
+[ocr]   ✔ file_find (4ms)
+[ocr]   ▶ code_search search_text=class PermissionActivity
+[ocr]   ✔ code_search (20ms)
+[ocr]   ▶ code_search search_text=package 
+[ocr]   ✔ code_search (4ms)
+[ocr]   ▶ code_search use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=accent file_patterns=[app/src/main/res/values*/]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_read
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=updateMicColor
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_read end_line=188 start_line=140
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=ic_launcher file_patterns=[app/src/main/AndroidManifest.xml]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=mipmap
+[ocr]   ✔ file_find (4ms)
+[ocr]   ▶ code_search search_text=name="accent"
+[ocr]   ✔ code_search (17ms)
+[ocr]   ▶ code_search search_text=PermissionActivity
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_search search_text=name="subtype_label" file_patterns=[app/src/main/res/values/]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=method.xml
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search search_text=R\.string\. file_patterns=[*.kt *.java] use_perl_regexp=true
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ code_search search_text=@string/ file_patterns=[*.xml]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=ic_launcher.png
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search search_text=minSdk file_patterns=[*.gradle *.gradle.kts *.toml]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ file_read file_path=app/src/main/java/com/voiceime/VoiceImeService.kt start_line=285 end_line=310
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read start_line=126 end_line=140
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search file_patterns=[*.kt] use_perl_regexp=true
+[ocr]   ✔ code_search (9ms)
+[ocr]   ▶ code_search search_text=input-method|xml/method|InputMethod file_patterns=[app/src/main/AndroidManifest.xml]
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_search search_text=ic_launcher_round
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/xml/method.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=values-/strings.xml
+[ocr]   ✔ file_find (7ms)
+[ocr]   ▶ code_search search_text=method file_patterns=[app/src/main/AndroidManifest.xml]
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/xml/method.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search search_text=android:icon file_patterns=[app/src/main/AndroidManifest.xml]
+[ocr]   ✔ code_search (3ms)
+[ocr]   ▶ code_search search_text=minSdk
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=app/src/main/res/values
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (4ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/strings.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_find query_name=mipmap
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/strings.xml start_line=1 end_line=40
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ file_read file_path=app/src/main/AndroidManifest.xml
+[ocr]   ✔ file_read (1ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (0s)
+[ocr]   ▶ code_search file_patterns=[*.kt] search_text=getString\(R\.string\.|R\.string\.voice use_perl_regexp=true
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ code_search search_text=langu|language|KEYCODE|subtype file_patterns=[app/src/main/java/ app/src/main/kotlin/] use_perl_regexp=true
+[ocr]   ✔ code_search (8ms)
+[ocr]   ▶ file_read start_line=85 end_line=110
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_search use_perl_regexp=true file_patterns=[*.kt] search_text=R.color\.
+[ocr]   ✔ code_search (10ms)
+[ocr]   ▶ file_read file_path=app/src/main/res/values/colors.xml
+[ocr]   ✔ file_read (0s)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (3ms)
+[ocr]   ▶ code_search search_text=oval|R\.drawable|R\.layout use_perl_regexp=true
+[ocr]   ✔ code_search (6ms)
+[ocr]   ▶ file_find query_name=app/src/main/res
+[ocr]   ✔ file_find (5ms)
+[ocr]   ▶ code_search file_patterns=[*.xml] search_text=ic_launcher
+[ocr]   ✔ code_search (7ms)
+[ocr]   ▶ code_search file_patterns=[app/src/main/res/values/strings.xml] search_text=recent|clipboard_count use_perl_regexp=true
+[ocr]   ✔ code_search (5ms)
+[ocr]   ▶ code_comment
+[ocr]   ✔ code_comment (2ms)
+[ocr] No tool calls parsed for app/src/main/res/values/strings.xml, retrying...
+[ocr] scan dedup batch #2: 12 → 10 comments
+[ocr] Summary: 27 file(s) reviewed, 59 comment(s), ~1092105 token(s) used (input: ~1060051, output: ~32054), cache(read: ~922752, write: ~0), 1m33s elapsed
+[ocr] Session: f696fc68-b401-499e-9387-d62f877054fb
+[ocr] Results written to /workspace/voiceime/ocr_review.txt

@@ -22,16 +22,16 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
     var onClose: (() -> Unit)? = null
 
     companion object {
-        const val PREFS = voiceime_prefs
-        const val KEY_CORRECT_LEVEL = correct_level
-        val CORRECT_LEVELS = listOf(normal, medium, strong)
+        const val PREFS = "voiceime_prefs"
+        const val KEY_CORRECT_LEVEL = "correct_level"
+        val CORRECT_LEVELS = listOf("normal", "medium", "strong")
     }
 
     private var heightDp = 62f
 
     private var correctLevel: String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_CORRECT_LEVEL, normal) ?: normal
+            .getString(KEY_CORRECT_LEVEL, "normal") ?: "normal"
     private val levelButtons = mutableMapOf<String, TextView>()
     private val valueLabel = TextView(context).apply {
         textSize = 15f
@@ -114,9 +114,9 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         }
         levelRow.addView(levelLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         val levelNames = mapOf(
-            normal to R.string.settings_level_normal,
-            medium to R.string.settings_level_medium,
-            strong to R.string.settings_level_strong
+            "normal" to R.string.settings_level_normal,
+            "medium" to R.string.settings_level_medium,
+            "strong" to R.string.settings_level_strong
         )
         for ((level, nameRes) in levelNames) {
             val btn = levelButton(context.getString(nameRes)) { setCorrectLevel(level) }
@@ -215,7 +215,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
     }
 
     fun setCorrectLevel(level: String) {
-        val next = if (level in CORRECT_LEVELS) level else normal
+        val next = if (level in CORRECT_LEVELS) level else "normal"
         if (next == correctLevel) return
         correctLevel = next
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()

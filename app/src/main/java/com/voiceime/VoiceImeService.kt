@@ -2,6 +2,7 @@ package com.voiceime
 
 import android.Manifest
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
@@ -990,7 +991,11 @@ class VoiceImeService : InputMethodService() {
             addView(status, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         }
         val anchor = voiceView.rootView
-        val width = if (anchor.width > 0) anchor.width else LinearLayout.LayoutParams.MATCH_PARENT
+        // The bar stops short of the screen edges: a 12dp margin on each
+        // side instead of spanning the full width.
+        val margin = dp(12f)
+        val hasWidth = anchor.width > 0
+        val width = if (hasWidth) anchor.width - 2 * margin else LinearLayout.LayoutParams.MATCH_PARENT
         val popup = PopupWindow(content, width, LinearLayout.LayoutParams.WRAP_CONTENT)
         popup.isFocusable = false
         popup.isOutsideTouchable = false
@@ -1002,7 +1007,7 @@ class VoiceImeService : InputMethodService() {
         setPopupCorrecting(false)
         // Bottom gravity + the input view's own height puts the popup just
         // above the keyboard, whether the frame is screen- or window-relative.
-        popup.showAtLocation(anchor, Gravity.BOTTOM or Gravity.START, 0, anchor.height + dp(8f))
+        popup.showAtLocation(anchor, Gravity.BOTTOM or Gravity.START, if (hasWidth) margin else 0, anchor.height + dp(8f))
     }
 
     private fun setPopupText(text: String) {

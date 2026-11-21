@@ -9,6 +9,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.Toast
+import com.voiceime.lexicon.Lexicon
 import com.voiceime.ui.CandidateBar
 import com.voiceime.ui.T9KeyboardView
 import com.voiceime.ui.dp
@@ -31,6 +32,13 @@ class VoiceImeService : InputMethodService() {
 
     /** Local lexicon engine, plugged in during Chunk 3. */
     var candidateProvider: CandidateProvider? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        val lexicon = Lexicon(this)
+        lexicon.prepare()
+        candidateProvider = lexicon
+    }
 
     // English multitap state (2=abc, 3=def, ... cycling within a timeout).
     private val handler = Handler(Looper.getMainLooper())
@@ -134,8 +142,10 @@ class VoiceImeService : InputMethodService() {
                 commit("0")
             }
             key.length == 1 && key[0] in '2'..'9' -> {
-                digits.append(key)
-                refreshCandidates()
+                if (digits.length < MAX_DIGITS) {
+                    digits.append(key)
+                    refreshCandidates()
+                }
             }
         }
     }
@@ -251,6 +261,7 @@ class VoiceImeService : InputMethodService() {
 
     companion object {
         private const val TAP_TIMEOUT_MS = 900L
+        private const val MAX_DIGITS = 20
         private val LETTER_GROUPS = mapOf(
             '2' to "abc", '3' to "def", '4' to "ghi", '5' to "jkl",
             '6' to "mno", '7' to "pqrs", '8' to "tuv", '9' to "wxyz"

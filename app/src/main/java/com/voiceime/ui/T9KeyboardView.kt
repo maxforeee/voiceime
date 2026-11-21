@@ -24,10 +24,11 @@ import com.voiceime.R
 * frame, no digits - digits live on the 9-key page) +
 * 返回 / 空格 / 回车, same size as the main bottom row.
 *
-* Everything scales with the row pitch from Settings: key height, key gap,
-* main / small text sizes and the 9-key sublabel (0.65x main, relative) all
-* derive from one scale factor, so no key or label is ever left behind or
-* clipped at any height setting.
+* Each keyboard scales with its own row pitch from Settings (two
+* sliders since v1.2.9): key height, key gap, main / small text sizes
+* and the 9-key sublabel (0.65x main, relative) all derive from that
+* page pitch, so no key or label is ever left behind or clipped at
+* any height setting.
 */
 class T9KeyboardView(context: Context): LinearLayout(context) {
 
@@ -37,9 +38,14 @@ var onDeleteLongPress: (() -> Unit)? = null
 /** Swipe up on a digit key: input that digit directly, no pinyin. */
 var onDigitSwipeUp: ((String) -> Unit)? = null
 
-// Row pitch (key height + vertical gap) in px, from Settings or auto.
-// Every size below derives from it, so the whole keyboard scales as one.
-private var pitchPx: Int
+// Row pitches (key height + vertical gap) in px, one per keyboard:
+// the two keyboards size independently now (v1.2.9), each from its
+// own Settings slider. Every size below derives from its own pitch.
+private var t9PitchPx: Int
+private var qwertyPitchPx: Int
+/** Pitch of the page currently being built: text sizes derive from
+ * it, so T9 and QWERTY labels each scale with their own pitch. */
+private var buildPitchPx: Int
 
 private var showingSymbols = false
 private var showingZh = true
@@ -50,105 +56,127 @@ private var lastShiftTapMs = 0L
 
 /** Height scale vs the 62dp reference pitch (1.0 = the original sizes). */
 private val scale: Float
-get() = (pitchPx / resources.displayMetrics.density / BASE_ROW_PITCH_DP)
+get() = (buildPitchPx / resources.displayMetrics.density / BASE_ROW_PITCH_DP)
 .coerceIn(0.6f, 1.25f)
 
-/** Half of the visible key gap (Doubao 44:8): the visible gap between
-* two keys is 2 x gapPx = rowPitch x 8/52, so at the 52dp pitch the gap
-* is 8dp and the key is 44dp, exactly Doubao skin numbers (key 44 +
-* gap 8 = 52 per row). Doubao own horizontal margin is 2.5dp a side
-* (5dp gap); ours is never smaller than that. */
-private val gapPx: Int
-get() = ((pitchPx * 4f / 52f) + 0.5f).toInt().coerceAtLeast(context.dp(2f))
-private val keyGap: Int get() = gapPx * 2
+/** T9 key/gap (v1.2.9: 40:12, was Doubao 44:8): the visible gap
+* between two keys is 2 x t9GapPx = t9Pitch x 12/52, so at the 52dp
+* pitch the gap is 12dp and the key is 40dp -- the T9 keys were
+* filling too much of the panel at 44:8 (85%), now 40/52 = 77%. */
+private val t9GapPx: Int
+get() = ((t9PitchPx * 6f / 52f) + 0.5f).toInt().coerceAtLeast(context.dp(2f))
+private val t9KeyGap: Int get() = t9GapPx * 2
 
-/** QWERTY key height: Doubao ratio 44/52 x rowPitch (key 44 + gap 8 =
-* 52 per row at the 52dp pitch). The panel total is 4 rows, one row
-* shorter than the 5-row T9 page. */
-private val qwertyKeyHeightPx: Int
-    get() = (rowPitch * QWERTY_KEY_HEIGHT_FACTOR).toInt()
+/** QWERTY key/gap (Doubao 44:8; the Doubao English26 skin rows are
+* height_weight 48 against the 9-key 52): the visible gap is
+* 2 x qwertyGapPx = qwertyPitch x 8/52, so at the 48dp default pitch
+* the gap is ~7.4dp and the key ~40.6dp. */
+private val qwertyGapPx: Int
+get() = ((qwertyPitchPx * 4f / 52f) + 0.5f).toInt().coerceAtLeast(context.dp(2f))
+private val qwertyKeyGap: Int get() = qwertyGapPx * 2
 
-/** QWERTY vertical gap: the Doubao gap, same as the T9 gap (keyGap =
-* rowPitch x 8/52; 8dp at the 52dp pitch). Between rows it is one gap
-* view; top/bottom edges are gap view minus the view own padding, so
-* every vertical whitespace on this page is the same size. Horizontal
-* gaps are 2 x gapPx, the same value. */
-private val qwertyVGapPx: Int
-    get() = keyGap
+// Visible key heights. The row pitch adds the vertical gap (top +
+// bottom key margins), so each panel height is rows x its own pitch.
+private val keyHeight: Int get() = t9PitchPx - t9KeyGap
+private val qwertyKeyHeightPx: Int get() = qwertyPitchPx - qwertyKeyGap
 
-// Visible key height. The row pitch adds the vertical gap (top + bottom
-// key margins), so the panel height is rows x (keyHeight + keyGap).
-private val keyHeight: Int get() = pitchPx - keyGap
-private val rowPitch: Int get() = pitchPx
-
-/** Main key label size: 18sp at reference pitch, scaled with it. The
-* 9-key digit and its letters share this size on one line, so the
-* label shrinks with the key and can never overflow it at the lowest
-* pitch (45dp: 13.1sp fits a 39dp key with room to spare). */
+/** Main key label size: 18sp at reference pitch, scaled with the page
+* pitch. The 9-key digit and its letters share this size on one line,
+* so the label shrinks with the key and can never overflow it at the
+* lowest pitch (35dp: ~10.8sp fits a ~27dp key). */
 private val mainTextSizeSp: Float get() = 18f * scale
 /** Narrow bottom-row labels (lang / symbol on the QWERTY bottom row):
 * 15sp at reference pitch, scaled with it. */
 private val smallTextSizeSp: Float get() = 15f * scale
 
 /** Fixed height of the 5-row T9 page, shared by the symbol / voice /
-* clipboard / settings panels: rows x (keyHeight + keyGap) plus
-* vertical padding. */
+* clipboard / settings panels: 5 x T9 pitch plus vertical padding. */
 val panelHeightPx: Int
-get() = paddingTop + paddingBottom + 5 * rowPitch
+get() = paddingTop + paddingBottom + 5 * t9PitchPx
 
-/** QWERTY row pitch: one row pitch per row, same pitch as T9. The 4
-* English rows total 4 x rowPitch, exactly one row shorter than the
-* 5-row T9 page (Doubao does the same). The keys keep their natural
-* height (see qwertyKeyHeightPx), never stretched to fill. */
-private val qwertyRowPitch: Int get() = rowPitch
-
-/** Height of the page currently shown: QWERTY is 4 rows (one row
-* shorter than T9 5); symbols keep the 5-row height. */
+/** Height of the page currently shown: QWERTY is 4 rows of its own
+* pitch (Doubao English26 rows are 48 against the 9-key 52, so it
+* runs a little shorter than T9); symbols keep the 5-row T9 height. */
 val currentPanelHeightPx: Int
 get() = paddingTop + paddingBottom +
-if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
+if (showingQwerty) 4 * qwertyPitchPx else 5 * t9PitchPx
 
 companion object {
 private const val PREFS = "voiceime_prefs"
 private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
-const val MIN_ROW_PITCH_DP = 45f
+private const val KEY_QWERTY_ROW_PITCH_DP = "qwerty_row_pitch_dp"
+const val MIN_ROW_PITCH_DP = 35f
 const val MAX_ROW_PITCH_DP = 72f
+/** Defaults from the Doubao skin: T9 rows 52 (key 44 + gap 8),
+* English26 rows 48 against the 9-key 52. T9 now runs 40:12
+* (key 40 + gap 12 at the 52dp pitch); English stays 44:8. */
+const val DEFAULT_T9_ROW_PITCH_DP = 52f
+const val DEFAULT_QWERTY_ROW_PITCH_DP = 48f
 /** Reference pitch: every size below is defined at 62dp and scaled
 * from it, so the keyboard keeps its proportions at any setting. */
 private const val BASE_ROW_PITCH_DP = 62f
-    /** QWERTY key-height factor: Doubao ratio, key 44 of a 52 row pitch. */
-    private const val QWERTY_KEY_HEIGHT_FACTOR = 44f / 52f
+/** T9 key area is squeezed a little toward the centre: this extra
+* side inset on top of the key gap, each side, so the keys no
+* longer run right to the screen edges. */
+private const val T9_SIDE_INSET_EXTRA_DP = 4f
 }
 
-/** Current row pitch in dp, for the Settings panel label. */
+/** Current T9 row pitch in dp, for the Settings panel label. */
 fun currentRowPitchDp(): Float =
-rowPitch / resources.displayMetrics.density
+t9PitchPx / resources.displayMetrics.density
 
-/** Apply a new row pitch from Settings: persist, rebuild the current
+/** Current QWERTY row pitch in dp, for the Settings panel label. */
+fun currentQwertyRowPitchDp(): Float =
+qwertyPitchPx / resources.displayMetrics.density
+
+/** Apply a new T9 row pitch from Settings: persist, rebuild the T9
 * page with the new height. Panel height follows the formula, so the
 * service re-reads panelHeightPx after calling this. */
 fun setRowPitchDp(dpValue: Float) {
 val clamped = dpValue.coerceIn(MIN_ROW_PITCH_DP, MAX_ROW_PITCH_DP)
 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
 .putFloat(KEY_ROW_PITCH_DP, clamped).apply()
-pitchPx = context.dp(clamped)
-if (showingSymbols) showSymbols() else if (showingQwerty) showQwerty() else showMain(showingZh)
+t9PitchPx = context.dp(clamped)
+buildPitchPx = t9PitchPx
+if (showingSymbols) showSymbols() else if (!showingQwerty) showMain(showingZh)
+}
+
+/** Apply a new QWERTY row pitch from Settings: persist, rebuild the
+* English page if it is showing. */
+fun setQwertyRowPitchDp(dpValue: Float) {
+val clamped = dpValue.coerceIn(MIN_ROW_PITCH_DP, MAX_ROW_PITCH_DP)
+context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+.putFloat(KEY_QWERTY_ROW_PITCH_DP, clamped).apply()
+qwertyPitchPx = context.dp(clamped)
+buildPitchPx = qwertyPitchPx
+if (showingQwerty) showQwerty()
 }
 
 init {
 orientation = VERTICAL
 setBackgroundColor(context.getColor(R.color.keyboard_bg))
-val dm = resources.displayMetrics
-val landscape = dm.widthPixels > dm.heightPixels
-// Auto height: scale row pitch with the screen, clamped to sane
-// touch sizes; the visible key takes the pitch minus the gap.
-// A height saved in Settings overrides the auto value.
-val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
-val autoPitch = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
-val savedPitch = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-.getFloat(KEY_ROW_PITCH_DP, -1f)
-pitchPx = if (savedPitch > 0f) context.dp(savedPitch) else autoPitch
-setPadding(gapPx, context.dp(2f), gapPx, context.dp(4f))
+// Saved heights win; a fresh install starts at the Doubao
+// defaults (T9 52dp, English 48dp). The two pitches are
+// independent: changing one never moves the other.
+val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+val savedT9 = prefs.getFloat(KEY_ROW_PITCH_DP, -1f)
+val savedQwerty = prefs.getFloat(KEY_QWERTY_ROW_PITCH_DP, -1f)
+t9PitchPx = if (savedT9 > 0f) context.dp(savedT9) else context.dp(DEFAULT_T9_ROW_PITCH_DP)
+qwertyPitchPx = if (savedQwerty > 0f) context.dp(savedQwerty) else context.dp(DEFAULT_QWERTY_ROW_PITCH_DP)
+buildPitchPx = t9PitchPx
+applyT9Padding()
+}
+
+/** Side padding for the T9 pages: the key gap plus a small extra
+* inset, so the key area sits a little in from the screen edges. */
+private fun applyT9Padding() {
+val side = t9GapPx + context.dp(T9_SIDE_INSET_EXTRA_DP)
+setPadding(side, context.dp(2f), side, context.dp(4f))
+}
+
+/** Side padding for the QWERTY page: just the key gap, as before. */
+private fun applyQwertyPadding() {
+setPadding(qwertyGapPx, context.dp(2f), qwertyGapPx, context.dp(4f))
 }
 
 /** Show the 9-key page for Chinese, the full QWERTY page for English. */
@@ -161,6 +189,8 @@ removeAllViews()
 showingSymbols = false
 showingQwerty = false
 showingZh = zh
+buildPitchPx = t9PitchPx
+applyT9Padding()
 val sub1 = if (zh) "，" else null
 row(
 digitKey("1", sub1), digitKey("2", "ABC"), digitKey("3", "DEF")
@@ -194,6 +224,8 @@ fun showSymbols() {
 removeAllViews()
 showingSymbols = true
 showingQwerty = false
+buildPitchPx = t9PitchPx
+applyT9Padding()
 gridRow(
 symbolCell("，"), symbolCell("。"), symbolCell("、"),
 symbolCell("；"), symbolCell("："), symbolCell("？")
@@ -218,9 +250,9 @@ weights = floatArrayOf(1f, 2f, 1f)
 )
 }
 
-/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows,
-* one row shorter than the 5-row T9 page (Doubao style: key 44 + gap 8
-* = 52 per row, total 4 x rowPitch). Gboard layout: 10 / 9 / 7 letters,
+/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows of
+* its own pitch (Doubao style: key 44 + gap 8 = 52 per row, total
+* 4 x its own pitch, default 48dp). Gboard layout: 10 / 9 / 7 letters,
 * then the bottom row. Shift opens the z row and delete closes it, both
 * about two letter keys wide so the row is not cramped; the bottom row
 * is lang / symbol / space / enter with uniform non-space widths. */
@@ -228,23 +260,25 @@ fun showQwerty() {
 removeAllViews()
 showingSymbols = false
 showingQwerty = true
+buildPitchPx = qwertyPitchPx
+applyQwertyPadding()
 val upper = qwertyShift || qwertyCaps
-// Doubao 44:8 -- key 44/52 x rowPitch, gap 8/52 x rowPitch, total
-// 4 x rowPitch, one row shorter than T9. Keys are not stretched.
+// QWERTY runs its own pitch (default 48dp): key 44/52 x pitch,
+// gap 8/52 x pitch, total 4 x pitch. Keys are not stretched.
 val h = qwertyKeyHeightPx
-val g = qwertyVGapPx
+val g = qwertyKeyGap
 fun letter(ch: Char): TextView {
 val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
 return textKey(s, s)
 }
 addView(vGapView(g - paddingTop))
-row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h, vGap = 0)
+row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h, hGap = qwertyGapPx, vGap = 0)
 addView(vGapView(g))
 row(
 spacer(),
 *"asdfghjkl".map { letter(it)}.toTypedArray(),
 spacer(),
-height = h, vGap = 0,
+height = h, hGap = qwertyGapPx, vGap = 0,
 weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
 )
 addView(vGapView(g))
@@ -252,7 +286,7 @@ row(
 textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
 *"zxcvbnm".map { letter(it)}.toTypedArray(),
 textKey("\u232B", "del", function = true),
-height = h, vGap = 0,
+height = h, hGap = qwertyGapPx, vGap = 0,
 weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
 )
 addView(vGapView(g))
@@ -261,7 +295,7 @@ textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = smallTextSizeSp, 
 textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
 textKey("\u7A7A\u683C", "space"),
 textKey("\u56DE\u8F66", "enter", function = true),
-height = h, vGap = 0,
+height = h, hGap = qwertyGapPx, vGap = 0,
 weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
 )
 addView(vGapView(g - paddingBottom))
@@ -296,7 +330,7 @@ View(context).apply { layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, hei
 private fun spacer(): TextView =
 TextView(context).apply { visibility = View.INVISIBLE}
 
-private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null, hGap: Int = gapPx, vGap: Int = gapPx) {
+private fun row(vararg keys: TextView, height: Int = t9PitchPx, weights: FloatArray? = null, hGap: Int = t9GapPx, vGap: Int = t9GapPx) {
 val row = LinearLayout(context).apply { orientation = HORIZONTAL}
 for ((i, k) in keys.withIndex()) {
 row.addView(
@@ -311,7 +345,7 @@ addView(row, LayoutParams(LayoutParams.MATCH_PARENT, height))
 
 /** One row of the symbol grid: hairline gaps over the divider-coloured
 * row background read as table lines; cells carry no button frame. */
-private fun gridRow(vararg keys: TextView, height: Int = rowPitch) {
+private fun gridRow(vararg keys: TextView, height: Int = t9PitchPx) {
 val row = LinearLayout(context).apply {
 orientation = HORIZONTAL
 setBackgroundColor(context.getColor(R.color.divider))

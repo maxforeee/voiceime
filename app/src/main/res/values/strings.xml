@@ -33,7 +33,8 @@
     <string name="clipboard_empty">暂无复制内容</string>
     <string name="settings_desc">设置</string>
     <string name="settings_title">设置</string>
-    <string name="settings_height">键盘高度</string>
+    <string name="settings_height_t9">九宫格高度</string>
+    <string name="settings_height_qwerty">英文键盘高度</string>
     <string name="settings_level">提示词模板</string>
     <string name="settings_level_normal">一般</string>
     <string name="settings_level_medium">中等</string>

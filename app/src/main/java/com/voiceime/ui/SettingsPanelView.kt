@@ -10,13 +10,14 @@ import com.voiceime.R
 
 /**
  * Settings panel: same container and height as the clipboard panel, but a
- * tools list instead of clipboard content. Tools: keyboard height,
- * cleaning template (voice-input correction only, not modify), export,
- * offline voice pack.
+ * tools list instead of clipboard content. Tools: T9 height, QWERTY
+ * height (independent sliders since v1.2.9), cleaning template
+ * (voice-input correction only, not modify), export, offline voice pack.
  */
 class SettingsPanelView(context: Context) : LinearLayout(context) {
 
     var onHeightChange: ((Float) -> Unit)? = null
+    var onQwertyHeightChange: ((Float) -> Unit)? = null
     var onExportLearned: (() -> Unit)? = null
     var onOfflineDownload: (() -> Unit)? = null
     var onClose: (() -> Unit)? = null
@@ -28,12 +29,18 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
     }
 
     private var heightDp = 62f
+    private var qwertyHeightDp = 48f
 
     private var correctLevel: String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_CORRECT_LEVEL, "normal") ?: "normal"
     private val levelButtons = mutableMapOf<String, TextView>()
     private val valueLabel = TextView(context).apply {
+        textSize = 15f
+        gravity = Gravity.CENTER
+        setTextColor(context.getColor(R.color.key_text))
+    }
+    private val qwertyValueLabel = TextView(context).apply {
         textSize = 15f
         gravity = Gravity.CENTER
         setTextColor(context.getColor(R.color.key_text))
@@ -81,7 +88,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             setPadding(context.dp(14f), context.dp(12f), context.dp(14f), context.dp(12f))
         }
         val label = TextView(context).apply {
-            text = context.getString(R.string.settings_height)
+            text = context.getString(R.string.settings_height_t9)
             textSize = 16f
             setTextColor(context.getColor(R.color.key_text))
         }
@@ -96,6 +103,30 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         body.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(8f), context.dp(8f), context.dp(4f))
+        })
+
+        val qwertyRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(context.getColor(R.color.key_bg))
+            setPadding(context.dp(14f), context.dp(12f), context.dp(14f), context.dp(12f))
+        }
+        val qwertyLabel = TextView(context).apply {
+            text = context.getString(R.string.settings_height_qwerty)
+            textSize = 16f
+            setTextColor(context.getColor(R.color.key_text))
+        }
+        qwertyRow.addView(qwertyLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        qwertyRow.addView(actionButton("\u2212") { changeQwertyHeight(-1f) },
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        qwertyRow.addView(qwertyValueLabel, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            marginStart = context.dp(12f)
+            marginEnd = context.dp(12f)
+        })
+        qwertyRow.addView(actionButton("+") { changeQwertyHeight(1f) },
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        body.addView(qwertyRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
 
         // Cleaning template: three levels, only the voice-input /correct
@@ -180,6 +211,11 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         valueLabel.text = "${dpValue.toInt()} dp"
     }
 
+    fun setQwertyHeightDp(dpValue: Float) {
+        qwertyHeightDp = dpValue
+        qwertyValueLabel.text = "${dpValue.toInt()} dp"
+    }
+
     fun setOfflineStatusText(text: String) {
         offlineStatusLabel.text = text
     }
@@ -229,6 +265,14 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         if (next == heightDp) return
         setHeightDp(next)
         onHeightChange?.invoke(next)
+    }
+
+    private fun changeQwertyHeight(delta: Float) {
+        val next = (qwertyHeightDp + delta).coerceIn(
+            T9KeyboardView.MIN_ROW_PITCH_DP, T9KeyboardView.MAX_ROW_PITCH_DP)
+        if (next == qwertyHeightDp) return
+        setQwertyHeightDp(next)
+        onQwertyHeightChange?.invoke(next)
     }
 
     private fun actionButton(label: String, action: () -> Unit): TextView =

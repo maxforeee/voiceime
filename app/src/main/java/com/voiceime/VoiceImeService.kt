@@ -295,13 +295,15 @@ class VoiceImeService : InputMethodService() {
 
         settingsPanel = SettingsPanelView(this).apply {
             visibility = View.GONE
-            onHeightChange = { dpValue -> applyKeyboardHeight(dpValue) }
+            onHeightChange = { dpValue -> applyT9Height(dpValue) }
+            onQwertyHeightChange = { dpValue -> applyQwertyHeight(dpValue) }
             onExportLearned = { exportLearned() }
             onOfflineDownload = { downloadOfflinePack() }
             onClose = { closeSettingsPanel() }
         }
         root.addView(settingsPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
         settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
+        settingsPanel.setQwertyHeightDp(keyboard.currentQwertyRowPitchDp())
 
         return root
     }
@@ -1088,6 +1090,7 @@ class VoiceImeService : InputMethodService() {
         clipboardPanel.visibility = View.GONE
         settingsPanel.visibility = View.VISIBLE
         settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
+        settingsPanel.setQwertyHeightDp(keyboard.currentQwertyRowPitchDp())
         refreshOfflineStatus()
     }
 
@@ -1111,17 +1114,19 @@ class VoiceImeService : InputMethodService() {
     }
 
     /** Resize the keyboard view to the height of the page it is showing
-     *  (QWERTY and T9 pages share the same height). Call after every
-     *  page switch, or the window keeps the old height. */
+     *  (each page has its own height now: T9 5 x its pitch, QWERTY
+     *  4 x its pitch). Call after every page switch, or the window
+     *  keeps the old height. */
     private fun resizeKeyboardToPage() {
         if (!::keyboard.isInitialized) return
         keyboard.layoutParams.height = keyboard.currentPanelHeightPx
         keyboard.requestLayout()
     }
 
-    /** Keyboard height tool: rebuild the keyboard at the new pitch, then
-     *  resize every panel to the new formula height. */
-    private fun applyKeyboardHeight(dpValue: Float) {
+    /** T9 height tool: rebuild the 9-key page at the new pitch, then
+     *  resize every panel to the new formula height. The English page
+     *  keeps its own pitch (see applyQwertyHeight). */
+    private fun applyT9Height(dpValue: Float) {
         keyboard.setRowPitchDp(dpValue)
         val h = keyboard.panelHeightPx
         keyboard.layoutParams.height = keyboard.currentPanelHeightPx
@@ -1129,6 +1134,16 @@ class VoiceImeService : InputMethodService() {
         clipboardPanel.layoutParams.height = h
         settingsPanel.layoutParams.height = h
         settingsPanel.setHeightDp(dpValue)
+        keyboard.requestLayout()
+    }
+
+    /** English height tool: rebuild the QWERTY page at its own pitch.
+     *  The other panels keep the T9 height; only the keyboard view
+     *  height follows the English page while it is showing. */
+    private fun applyQwertyHeight(dpValue: Float) {
+        keyboard.setQwertyRowPitchDp(dpValue)
+        keyboard.layoutParams.height = keyboard.currentPanelHeightPx
+        settingsPanel.setQwertyHeightDp(dpValue)
         keyboard.requestLayout()
     }
 

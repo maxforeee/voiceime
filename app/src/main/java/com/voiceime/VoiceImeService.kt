@@ -183,7 +183,7 @@ class VoiceImeService : InputMethodService() {
         }
         candidateBar = CandidateBar(this)
         candidateBar.onTap = { c -> commitCandidate(c) }
-        candidateBar.onSegmentationTap = { cycleSegmentation() }
+        candidateBar.onSegmentationPick = { idx -> selectSegmentation(idx) }
         val clipboardBtn = ImageButton(this).apply {
             setImageResource(R.drawable.ic_clipboard)
             background = null
@@ -913,7 +913,7 @@ class VoiceImeService : InputMethodService() {
             candidateProvider?.lookup(d) ?: CandidateResult(d, emptyList())
         }
         lastLocal = result
-        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations.size > 1)
+        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations, segIndex)
         // Local candidates are already on screen; only now arm the network.
         online.cancel()
         handler.removeCallbacks(onlineRequest)
@@ -922,15 +922,15 @@ class VoiceImeService : InputMethodService() {
         }
     }
 
-    /** Pinyin label tapped: show the next ranked segmentation and its words. */
-    private fun cycleSegmentation() {
+    /** Dropdown pick: apply the chosen segmentation and its words, and lock it in. */
+    private fun selectSegmentation(index: Int) {
         val segs = lastLocal.segmentations
         val d = digits.toString()
-        if (segs.size < 2 || d.isEmpty()) return
-        segIndex = (segIndex + 1) % segs.size
+        if (index !in segs.indices || d.isEmpty()) return
+        segIndex = index
         val result = candidateProvider?.lookupFor(d, segs[segIndex]) ?: return
         lastLocal = result
-        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations.size > 1)
+        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations, segIndex)
         online.cancel()
         handler.removeCallbacks(onlineRequest)
         if (lang == Lang.ZH && !symbolsPage) {
@@ -945,7 +945,7 @@ class VoiceImeService : InputMethodService() {
         val merged = ArrayList<Candidate>(words.size + lastLocal.candidates.size)
         for (w in words) merged.add(Candidate(w))
         for (c in lastLocal.candidates) if (c.word !in onlineSet) merged.add(c)
-        candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged, lastLocal.segmentations.size > 1)
+        candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged, lastLocal.segmentations, segIndex)
     }
 
     private fun commitCandidate(c: Candidate) {

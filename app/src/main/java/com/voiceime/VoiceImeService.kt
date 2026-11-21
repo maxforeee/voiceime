@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -11,11 +13,17 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.voiceime.asr.AudioCapture
 import com.voiceime.asr.DoubaoAsrClient
@@ -34,9 +42,10 @@ import com.voiceime.ui.dp
  * Two modes, ONE toggle fixed at the top-right corner (the only voice entry):
  *  - KEYBOARD: T9 pinyin grid + scrollable candidate bar, local-first with
  *    debounced online suggestions, 中/英 multitap and 数字/符号 page.
- *  - VOICE: big mic button (hold-to-talk AND tap-toggle), live interim text,
- *    Doubao streaming ASR, final text committed once via commitText().
- *    A disabled "修改" entry is reserved for v2 (not implemented).
+ *  - VOICE: big mic button (hold-to-talk AND tap-toggle), live text in a
+ *    popup window above the keyboard, Doubao streaming ASR, final text
+ *    committed once via commitText(). The bottom-right "修改" key shows a
+ *    coming-soon toast (editing is not implemented yet).
  *
  * Interrupt safety: switching modes / finishing input stops recording first;
  * no-network / no-permission / recognition failures show a message and never
@@ -111,6 +120,15 @@ class VoiceImeService : InputMethodService() {
         if (voiceState == VoiceState.PROCESSING) failSession(getString(R.string.voice_timeout))
     }
 
+    // Live-text popup: a separate window above the keyboard, so the fixed
+    // panel heights are never affected. It owns text display while recording.
+    private var voicePopup: PopupWindow? = null
+    private var popupText: TextView? = null
+    private var popupScroll: ScrollView? = null
+    private var popupStatus: TextView? = null
+    private var popupEnd: TextView? = null
+    private val popupDismiss = Runnable { dismissVoicePopup() }
+
     override fun onCreate() {
         super.onCreate()
         val lexicon = Lexicon(this)
@@ -122,6 +140,7 @@ class VoiceImeService : InputMethodService() {
     }
 
     override fun onDestroy() {
+        dismissVoicePopup()
         getSystemService(ClipboardManager::class.java)
             ?.removePrimaryClipChangedListener(clipListener)
         super.onDestroy()
@@ -190,6 +209,9 @@ class VoiceImeService : InputMethodService() {
                 }
             }
             onBackToKeyboard = { switchToKeyboard() }
+            onModifyClick = {
+                Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_soon), Toast.LENGTH_SHORT).show()
+            }
         }
         root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
@@ -336,6 +358,7 @@ class VoiceImeService : InputMethodService() {
         voiceView.holdMode = hold
         voiceView.setInterim("")
         voiceView.setStatus(getString(R.string.voice_connecting))
+        showVoicePopup()
 
         val client = DoubaoAsrClient(BuildConfig.DOUBAO_API_KEY, object : DoubaoAsrClient.Listener {
             override fun onReady() {
@@ -346,7 +369,7 @@ class VoiceImeService : InputMethodService() {
                 handler.post {
                     if (id == sessionId) {
                         lastInterim = text
-                        voiceView.setInterim(text)
+                        setPopupText(text)
                     }
                 }
             }
@@ -391,6 +414,7 @@ class VoiceImeService : InputMethodService() {
         voiceView.recording = false
         voiceView.micEnabled = false
         voiceView.setStatus(getString(R.string.voice_processing))
+        setPopupCorrecting(true)
         capture?.stop()
         capture = null
         asrClient?.sendAudio(ByteArray(0), 0, last = true)
@@ -400,6 +424,7 @@ class VoiceImeService : InputMethodService() {
 
     private fun onAsrFinal(text: String) {
         handler.removeCallbacks(processingTimeout)
+        setPopupText(text)
         commitOnce(text)
         cleanupSession()
         voiceState = VoiceState.IDLE
@@ -407,6 +432,8 @@ class VoiceImeService : InputMethodService() {
         voiceView.micEnabled = true
         voiceView.setInterim("")
         voiceView.setStatus(getString(R.string.voice_done))
+        // Let the final text stay readable for a moment before the popup goes.
+        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
     }
 
     private fun onAsrClosed() {
@@ -421,6 +448,7 @@ class VoiceImeService : InputMethodService() {
         voiceView.setStatus(
             getString(if (committed) R.string.voice_done else R.string.voice_hint_idle)
         )
+        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
     }
 
     private fun failSession(message: String) {
@@ -433,9 +461,10 @@ class VoiceImeService : InputMethodService() {
         voiceState = VoiceState.IDLE
         voiceView.recording = false
         voiceView.micEnabled = true
-        // Keep the interim text visible so the user sees what was heard;
-        // nothing is committed on failure.
+        // Keep what was heard visible in the popup for a moment; nothing is
+        // committed on failure.
         voiceView.setStatus(message, isError = true)
+        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
     }
 
     /** Mode switch / input finished: stop recording FIRST, then tear down. */
@@ -451,6 +480,7 @@ class VoiceImeService : InputMethodService() {
         asrClient?.cancel()
         asrClient = null
         voiceState = VoiceState.IDLE
+        dismissVoicePopup()
         if (::voiceView.isInitialized) {
             voiceView.recording = false
             voiceView.setInterim("")
@@ -476,6 +506,115 @@ class VoiceImeService : InputMethodService() {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return false
         val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    // ---- live-text popup ------------------------------------------------------
+
+    private fun showVoicePopup() {
+        handler.removeCallbacks(popupDismiss)
+        val existing = voicePopup
+        if (existing != null && existing.isShowing) {
+            setPopupText("")
+            setPopupCorrecting(false)
+            return
+        }
+        val pad = dp(10f)
+        val text = TextView(this).apply {
+            textSize = 16f
+            setTextColor(getColor(R.color.key_text))
+        }
+        // The scroll area grows with the text up to a cap, then scrolls
+        // internally, so the popup never grows over the app's text field.
+        val scroll = object : ScrollView(this) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                super.onMeasure(
+                    widthMeasureSpec,
+                    MeasureSpec.makeMeasureSpec(dp(120f), MeasureSpec.AT_MOST)
+                )
+            }
+        }.apply {
+            isVerticalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(
+                text,
+                FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT)
+            )
+        }
+        val status = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.status_text))
+            text = getString(R.string.voice_correcting)
+            visibility = View.GONE
+            setPadding(0, dp(4f), 0, 0)
+        }
+        val end = TextView(this).apply {
+            text = getString(R.string.voice_popup_end)
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(10f).toFloat()
+                setColor(getColor(R.color.accent))
+            }
+            setPadding(dp(18f), dp(6f), dp(18f), dp(6f))
+            isClickable = true
+            setOnClickListener { stopRecording() }
+        }
+        val endRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            setPadding(0, dp(6f), 0, 0)
+            addView(end, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12f).toFloat()
+                setColor(getColor(R.color.keyboard_bg))
+                setStroke(dp(1f), getColor(R.color.divider))
+            }
+            setPadding(pad, pad, pad, pad)
+            addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(status, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(endRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        }
+        val anchor = voiceView.rootView
+        val width = if (anchor.width > 0) anchor.width else LinearLayout.LayoutParams.MATCH_PARENT
+        val popup = PopupWindow(content, width, LinearLayout.LayoutParams.WRAP_CONTENT)
+        popup.isFocusable = false
+        popup.isOutsideTouchable = false
+        voicePopup = popup
+        popupText = text
+        popupScroll = scroll
+        popupStatus = status
+        popupEnd = end
+        setPopupText("")
+        setPopupCorrecting(false)
+        // Bottom gravity + the input view's own height puts the popup just
+        // above the keyboard, whether the frame is screen- or window-relative.
+        popup.showAtLocation(anchor, Gravity.BOTTOM or Gravity.START, 0, anchor.height + dp(8f))
+    }
+
+    private fun setPopupText(text: String) {
+        val tv = popupText ?: return
+        tv.text = text
+        popupScroll?.post { popupScroll?.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    private fun setPopupCorrecting(correcting: Boolean) {
+        popupStatus?.visibility = if (correcting) View.VISIBLE else View.GONE
+        popupEnd?.isEnabled = !correcting
+        popupEnd?.alpha = if (correcting) 0.5f else 1f
+    }
+
+    private fun dismissVoicePopup() {
+        handler.removeCallbacks(popupDismiss)
+        voicePopup?.dismiss()
+        voicePopup = null
+        popupText = null
+        popupScroll = null
+        popupStatus = null
+        popupEnd = null
     }
 
     // ---- clipboard panel ------------------------------------------------------
@@ -699,6 +838,7 @@ class VoiceImeService : InputMethodService() {
         private const val MAX_DIGITS = 20
         private const val ONLINE_DEBOUNCE_MS = 100L
         private const val FINAL_TIMEOUT_MS = 8000L
+        private const val POPUP_LINGER_MS = 1500L
         private val LETTER_GROUPS = mapOf(
             '2' to "abc", '3' to "def", '4' to "ghi", '5' to "jkl",
             '6' to "mno", '7' to "pqrs", '8' to "tuv", '9' to "wxyz"

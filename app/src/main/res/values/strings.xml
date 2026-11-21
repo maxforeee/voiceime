@@ -16,7 +16,10 @@
     <string name="voice_need_permission">需要麦克风权限，请在弹窗中允许后再试</string>
     <string name="voice_timeout">识别超时，请重试</string>
     <string name="voice_back_keyboard">键盘</string>
-    <string name="voice_edit_reserved">修改 · v2 即将推出</string>
+    <string name="voice_edit">修改</string>
+    <string name="voice_edit_soon">修改功能稍后上线</string>
+    <string name="voice_popup_end">结束</string>
+    <string name="voice_correcting">修正中…</string>
 
     <string name="clipboard_desc">剪贴板</string>
     <string name="clipboard_title">剪贴板 · 最近 10 条</string>

@@ -16,8 +16,9 @@ import com.voiceime.R
 
 /**
  * Big voice keyboard: one large mic button (long-press hold-to-talk AND tap
- * toggle), live interim text + status above it, back-to-keyboard below, and a
- * visible-but-disabled "修改" entry reserved for v2 (not implemented in v1).
+ * toggle), status above it, back-to-keyboard below-left and a "修改" entry
+ * below-right styled exactly like the back key. Live text display is owned by
+ * the service's popup window; the embedded interim area stays empty.
  * There is no other voice entry anywhere; the top-right toggle owns switching.
  */
 class VoiceKeyboardView(context: Context) : LinearLayout(context) {
@@ -26,6 +27,7 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
     var onHoldEnd: (() -> Unit)? = null
     var onTap: (() -> Unit)? = null
     var onBackToKeyboard: (() -> Unit)? = null
+    var onModifyClick: (() -> Unit)? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var holdActive = false
@@ -98,18 +100,19 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
             isClickable = true
             setOnClickListener { onBackToKeyboard?.invoke() }
         }
-        val editReserved = TextView(context).apply {
-            text = context.getString(R.string.voice_edit_reserved)
-            textSize = 13f
+        val editKey = TextView(context).apply {
+            text = context.getString(R.string.voice_edit)
+            textSize = 15f
             gravity = Gravity.CENTER
-            setTextColor(context.getColor(R.color.key_text_secondary))
-            alpha = 0.55f
-            isEnabled = false
+            setTextColor(context.getColor(R.color.key_text))
+            background = keyBackground(context, function = true)
             setPadding(context.dp(18f), context.dp(10f), context.dp(18f), context.dp(10f))
+            isClickable = true
+            setOnClickListener { onModifyClick?.invoke() }
         }
         bottomRow.addView(backKey, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         bottomRow.addView(View(context), LayoutParams(0, 1, 1f))
-        bottomRow.addView(editReserved, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        bottomRow.addView(editKey, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         addView(bottomRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(12f), 0, context.dp(12f), context.dp(10f))
         })

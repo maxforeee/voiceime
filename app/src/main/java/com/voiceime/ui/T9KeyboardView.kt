@@ -69,7 +69,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     companion object {
         private const val PREFS = "voiceime_prefs"
         private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
-        const val MIN_ROW_PITCH_DP = 52f
+        const val MIN_ROW_PITCH_DP = 45f
         const val MAX_ROW_PITCH_DP = 72f
         /** QWERTY keys are 0.68x as tall as the old QWERTY keys (93px vs
          *  137px on the same phone), matching the reference keyboard. */

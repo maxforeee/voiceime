@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">语音输入法</string>
     <string name="subtype_label">中文（九宫格）</string>
+    <string name="toggle_desc">切换键盘 / 语音</string>
+    <string name="voice_coming_soon">语音键盘即将接入</string>
 </resources>

@@ -27,15 +27,20 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
 
     var onKey: ((String) -> Unit)? = null
 
+    // Visible key height. The row pitch adds the vertical gap (top + bottom
+    // key margins), so the panel height is rows x (keyHeight + keyGap).
     private val keyHeight: Int
     private val symbolKeyHeight: Int
     private val gap = context.dp(4f)
+    private val keyGap = gap * 2
+    private val rowPitch: Int get() = keyHeight + keyGap
     private var keyPreview: PopupWindow? = null
 
-    /** Fixed height shared by all panels: 5 main rows + vertical padding.
-     *  The 6 symbol rows fit it because symbolKeyHeight = keyHeight * 5 / 6. */
+    /** Fixed height shared by all panels: rows x (keyHeight + keyGap) plus
+     *  vertical padding. The 6 symbol rows fit it because
+     *  symbolKeyHeight = rowPitch * 5 / 6. */
     val panelHeightPx: Int
-        get() = paddingTop + paddingBottom + 5 * keyHeight
+        get() = paddingTop + paddingBottom + 5 * rowPitch
 
     init {
         orientation = VERTICAL
@@ -43,11 +48,12 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         setPadding(gap, context.dp(2f), gap, context.dp(4f))
         val dm = resources.displayMetrics
         val landscape = dm.widthPixels > dm.heightPixels
-        // Auto height: scale rows with the screen, clamped to sane touch sizes.
+        // Auto height: scale row pitch with the screen, clamped to sane
+        // touch sizes; the visible key takes the pitch minus the gap.
         val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
-        keyHeight = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
+        keyHeight = target.toInt().coerceIn(context.dp(42f), context.dp(62f)) - keyGap
         // 6 symbol rows must never exceed the 5-row main page's total height.
-        symbolKeyHeight = keyHeight * 5 / 6
+        symbolKeyHeight = rowPitch * 5 / 6
     }
 
     fun showMain(zh: Boolean) {
@@ -93,7 +99,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         )
     }
 
-    private fun row(vararg keys: TextView, height: Int = keyHeight, weights: FloatArray? = null) {
+    private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null) {
         val row = LinearLayout(context).apply { orientation = HORIZONTAL }
         for ((i, k) in keys.withIndex()) {
             row.addView(

@@ -66,7 +66,7 @@ class GoogleSuggestions(private val onResult: (digits: String, words: List<Strin
         pending = null
     }
 
-    /** Response shape: ["SUCCESS", [[input, [candidates...], ...]]]. */
+    /** Response shape: SUCCESS with groups of (input, candidates). */
     private fun parse(body: String): List<String> {
         return try {
             val arr = JSONArray(body)

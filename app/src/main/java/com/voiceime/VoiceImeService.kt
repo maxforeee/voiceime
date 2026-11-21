@@ -540,7 +540,7 @@ class VoiceImeService : InputMethodService() {
             refreshCandidates()
             return
         }
-        currentInputConnection?.sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
     }
 
     private fun onSpace() {
@@ -565,7 +565,7 @@ class VoiceImeService : InputMethodService() {
         if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
             ic.performEditorAction(action)
         } else {
-            ic.sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
         }
     }
 

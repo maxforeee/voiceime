@@ -12,7 +12,7 @@ fun Context.dp(v: Float): Int =
 /** Gboard-style light key: rounded white (or light-gray function) rect, darker when pressed. */
 fun keyBackground(ctx: Context, function: Boolean): StateListDrawable {
     fun shape(color: Int) = GradientDrawable().apply {
-        cornerRadius = ctx.dp(6).toFloat()
+        cornerRadius = ctx.dp(6f).toFloat()
         setColor(color)
     }
     val normalColor =

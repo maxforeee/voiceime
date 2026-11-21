@@ -76,6 +76,8 @@ class VoiceImeService : InputMethodService() {
     private val digits = StringBuilder()
     private var lang = Lang.ZH
     private var symbolsPage = false
+    // True while the focused field only takes integers (number/phone).
+    private var numericField = false
     private var mode = Mode.KEYBOARD
     private var panelOpen = false
 
@@ -218,6 +220,7 @@ class VoiceImeService : InputMethodService() {
         keyboard = T9KeyboardView(this)
         keyboard.onKey = { k -> onKey(k) }
         keyboard.onDeleteLongPress = { onDeleteLongPress() }
+        keyboard.onDigitSwipeUp = { d -> onDigitSwipeUp(d) }
         // Gboard-style fixed height: all three panels share the typing
         // keyboard's formula height, so switching panels never changes the
         // window height; panels scroll internally.
@@ -276,15 +279,14 @@ class VoiceImeService : InputMethodService() {
         stopVoiceSession(salvage = false)
         if (panelOpen) closeClipboardPanel()
         resetInput()
+        // Integer-only fields (number/phone) use the same fused 9-key: tap a
+        // key and the digit printed on it goes straight in, no swipe needed.
+        val cls = (info?.inputType ?: 0) and InputType.TYPE_MASK_CLASS
+        numericField = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE
         if (mode == Mode.VOICE) {
             resetVoiceUi()
         } else if (::keyboard.isInitialized) {
-            // Number/phone fields open straight onto the digits page.
-            val cls = (info?.inputType ?: 0) and InputType.TYPE_MASK_CLASS
-            if (cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE) {
-                symbolsPage = true
-                keyboard.showSymbols()
-            }
+            if (numericField && lang == Lang.EN) keyboard.showMain(true)
         }
     }
 
@@ -293,6 +295,7 @@ class VoiceImeService : InputMethodService() {
         stopVoiceSession(salvage = false)
         if (panelOpen) closeClipboardPanel()
         resetInput()
+        numericField = false
     }
 
     override fun onWindowHidden() {
@@ -839,6 +842,12 @@ class VoiceImeService : InputMethodService() {
                 flushBuffer()
                 commit(key)
             }
+            numericField && key.length == 1 && key[0] in '0'..'9' -> {
+                // Integer field: tap a key, the digit on it goes straight in.
+                finalizeTap()
+                flushBuffer()
+                commit(key)
+            }
             key == "shift" -> keyboard.toggleQwertyShift()
             key.length == 1 && (key[0] in 'a'..'z' || key[0] in 'A'..'Z') -> {
                 // QWERTY letter: commit directly, no multitap cycling.
@@ -862,6 +871,13 @@ class VoiceImeService : InputMethodService() {
                 }
             }
         }
+    }
+
+    /** Swipe up on a digit key inputs that digit directly, in any field. */
+    private fun onDigitSwipeUp(digit: String) {
+        finalizeTap()
+        flushBuffer()
+        commit(digit)
     }
 
     private fun onDelete() {

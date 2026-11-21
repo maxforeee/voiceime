@@ -27,6 +27,9 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     var onKey: ((String) -> Unit)? = null
     var onDeleteLongPress: (() -> Unit)? = null
 
+    /** Swipe up on a digit key: input that digit directly, no pinyin. */
+    var onDigitSwipeUp: ((String) -> Unit)? = null
+
     // Visible key height. The row pitch adds the vertical gap (top + bottom
     // key margins), so the panel height is rows x (keyHeight + keyGap).
     private var keyHeight: Int
@@ -249,9 +252,13 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         // on release. No popup preview (removed at the user's request).
         // Returning false keeps the TextView's own press/click handling intact.
         var longPressed = false
+        var swipedUp = false
+        var downY = 0f
         tv.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    downY = event.y
+                    swipedUp = false
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     v.scaleX = 0.95f
                     v.scaleY = 0.95f
@@ -259,6 +266,14 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.scaleX = 1f
                     v.scaleY = 1f
+                    // Swipe up on a digit key inputs that digit directly.
+                    if (event.actionMasked == MotionEvent.ACTION_UP &&
+                        code.length == 1 && code[0] in '0'..'9' &&
+                        downY - event.y > context.dp(24f)
+                    ) {
+                        swipedUp = true
+                        onDigitSwipeUp?.invoke(code)
+                    }
                 }
             }
             false
@@ -273,7 +288,10 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         }
         tv.setOnClickListener {
             // A long-press already handled this tap; skip the extra delete.
-            if (longPressed) longPressed = false else onKey?.invoke(code)
+            // A swipe-up already committed the digit; skip the pinyin tap.
+            if (longPressed) longPressed = false
+            else if (swipedUp) swipedUp = false
+            else onKey?.invoke(code)
         }
         return tv
     }

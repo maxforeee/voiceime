@@ -61,6 +61,8 @@ def audio_packet(pcm, seq, last=False):
 
 
 def parse_response(data):
+    if len(data) < 4:
+        raise ValueError(f"truncated frame: header needs 4 bytes, got {len(data)}")
     msg_type = data[1] >> 4
     flags = data[1] & 0x0F
     serial = data[2] >> 4
@@ -69,13 +71,21 @@ def parse_response(data):
     seq = None
     code = None
     if msg_type == 0x0F:
+        if len(data) < off + 4:
+            raise ValueError(f"truncated error frame: code field needs {off + 4} bytes, got {len(data)}")
         code = struct.unpack(">I", data[off:off + 4])[0]
         off += 4
     elif flags & 0x01:
+        if len(data) < off + 4:
+            raise ValueError(f"truncated frame: sequence field needs {off + 4} bytes, got {len(data)}")
         seq = struct.unpack(">i", data[off:off + 4])[0]
         off += 4
+    if len(data) < off + 4:
+        raise ValueError(f"truncated frame: size field needs {off + 4} bytes, got {len(data)}")
     size = struct.unpack(">I", data[off:off + 4])[0]
     off += 4
+    if len(data) < off + size:
+        raise ValueError(f"truncated frame: payload needs {off + size} bytes, got {len(data)}")
     payload = data[off:off + size]
     if compress == 1:
         payload = gzip.decompress(payload)
@@ -199,26 +209,33 @@ async def run_sentence(wav_path, ref, api_key, variant):
                     final_evt = r
 
         recv_task = asyncio.create_task(receiver())
-        seq = 2
-        total = len(pcm)
-        sent = 0
-        while sent < total:
-            chunk = pcm[sent:sent + CHUNK_BYTES]
-            sent += len(chunk)
-            last = sent >= total
-            if t_stream0 is None:
-                t_stream0 = time.monotonic() - t0
-            await ws.send(audio_packet(chunk, seq, last))
-            seq += 1
-            if last:
-                t_audio_end = time.monotonic() - t0
-            else:
-                await asyncio.sleep(CHUNK_MS / 1000)
         try:
-            await asyncio.wait_for(recv_task, timeout=30)
-        except asyncio.TimeoutError:
-            recv_task.cancel()
-            error = error or {"code": -1, "message": "timeout waiting for final response"}
+            seq = 2
+            total = len(pcm)
+            sent = 0
+            while sent < total:
+                chunk = pcm[sent:sent + CHUNK_BYTES]
+                sent += len(chunk)
+                last = sent >= total
+                if t_stream0 is None:
+                    t_stream0 = time.monotonic() - t0
+                await ws.send(audio_packet(chunk, seq, last))
+                seq += 1
+                if last:
+                    t_audio_end = time.monotonic() - t0
+                else:
+                    await asyncio.sleep(CHUNK_MS / 1000)
+            try:
+                await asyncio.wait_for(recv_task, timeout=30)
+            except asyncio.TimeoutError:
+                error = error or {"code": -1, "message": "timeout waiting for final response"}
+        finally:
+            if not recv_task.done():
+                recv_task.cancel()
+                await asyncio.gather(recv_task, return_exceptions=True)
+            exc = recv_task.exception() if not recv_task.cancelled() else None
+            if exc is not None and error is None:
+                error = {"code": -1, "message": f"receiver failed: {exc}"}
 
     if final_evt is None and events:
         final_evt = events[-1]

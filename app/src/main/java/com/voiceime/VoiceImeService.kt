@@ -123,7 +123,9 @@ class VoiceImeService : InputMethodService() {
     private val enKeys = StringBuilder()
     private val enLocked = ArrayList<Char?>()
     private var enResult: EnglishLexicon.EnglishResult? = null
+    @Volatile
     private var englishLexicon: EnglishLexicon? = null
+    @Volatile
     private var cloudLexicon: CloudLexicon? = null
     // The segment committed by the last green-arrow tap (for replace-in-
     // place when the user modifies it afterwards). -1 = nothing committed.
@@ -149,10 +151,6 @@ class VoiceImeService : InputMethodService() {
     private var lastCommitTimeMs = 0L
     // Last semantic (word-boundary) AI check, for the cooldown.
     private var lastSemanticCheckMs = 0L
-    // Small modify window (v1.3.0): the modify instruction is recognised in
-    // its own small popup above the keyboard, not in the main popup.
-    private var modifyWindow: PopupWindow? = null
-    private var modifyWindowText: TextView? = null
 
     // Online suggestions: debounced, 300ms drop deadline, never blocks typing.
     private val online = SogouSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
@@ -255,6 +253,8 @@ class VoiceImeService : InputMethodService() {
         dismissVoicePopup()
         getSystemService(ClipboardManager::class.java)
             ?.removePrimaryClipChangedListener(clipListener)
+        bgExecutor.shutdownNow()
+        cloudLexicon?.shutdown()
         super.onDestroy()
     }
 
@@ -770,11 +770,26 @@ class VoiceImeService : InputMethodService() {
             }
             return
         }
-        // Backend semantic correction (with the Settings cleaning template);
-        // on any failure the original text waits in the popup instead. The
-        // sessionId guard drops late callbacks after a mode switch / input
-        // finish.
         pendingOriginal = fullText
+        if (SemanticCorrector.isQuestion(fullText)) {
+            // Question / arithmetic: the answer waits in the popup; on any
+            // failure onAskDone silently falls back to the correction.
+            val id = sessionId
+            handler.removeCallbacks(correctionTimeout)
+            handler.postDelayed(correctionTimeout, CORRECTION_TIMEOUT_MS)
+            corrector.ask(fullText) { answer ->
+                handler.post { if (id == sessionId) onAskDone(fullText, answer) }
+            }
+        } else {
+            requestCorrection(fullText)
+        }
+    }
+
+    /** Backend semantic correction (with the Settings cleaning template);
+     *  on any failure the original text waits in the popup instead. The
+     *  sessionId guard drops late callbacks after a mode switch / input
+     *  finish. */
+    private fun requestCorrection(fullText: String) {
         val id = sessionId
         handler.removeCallbacks(correctionTimeout)
         handler.postDelayed(correctionTimeout, CORRECTION_TIMEOUT_MS)
@@ -828,6 +843,21 @@ class VoiceImeService : InputMethodService() {
         val out = corrected ?: original
         setPopupText(out)
         pendingCommitText = out
+        enterAwaitingCommit()
+    }
+
+    /** Ask result: the answer waits in the popup for the green-arrow tap,
+     *  exactly like a cleaned dictation; nothing commits by itself. On any
+     *  failure / timeout / no network, silently fall back to the normal
+     *  correction. */
+    private fun onAskDone(original: String, answer: String?) {
+        handler.removeCallbacks(correctionTimeout)
+        if (answer.isNullOrBlank()) {
+            requestCorrection(original)
+            return
+        }
+        setPopupText(answer)
+        pendingCommitText = answer
         enterAwaitingCommit()
     }
 
@@ -1942,9 +1972,13 @@ class VoiceImeService : InputMethodService() {
         // Word already in the field: replace the suspect word in place.
         val ic = currentInputConnection ?: return
         val before = ic.getTextBeforeCursor(100, 0)?.toString().orEmpty()
-        val withSpace = suspect.isNotEmpty() && before.endsWith("$suspect ")
-        val plain = suspect.isNotEmpty() && before.endsWith(suspect)
+        val withSpace = suspect.isNotEmpty() && before.endsWith("$suspect ", ignoreCase = true)
+        val plain = suspect.isNotEmpty() && before.endsWith(suspect, ignoreCase = true)
         if (!withSpace && !plain) return
+        // The suspect must sit on a word boundary (start of text or a
+        // non-letter before it), so `in` never matches inside `within`.
+        val startIdx = before.length - (suspect.length + if (withSpace) 1 else 0)
+        if (startIdx > 0 && before[startIdx - 1].isLetter()) return
         val deleteLen = suspect.length + if (withSpace) 1 else 0
         ic.deleteSurroundingText(deleteLen, 0)
         val out = if (lang == Lang.EN) capitalizeEnglish(corrected) else corrected

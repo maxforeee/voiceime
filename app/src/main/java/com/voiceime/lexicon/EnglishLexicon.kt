@@ -46,12 +46,14 @@ class EnglishLexicon(private val context: Context) {
     var ready: Boolean = false
         private set
 
-    /** Tier-1 words in frequency order (line order of english_words.txt). */
-    private var words: List<String> = emptyList()
+    /**
+     * Tier-1 words (frequency order) and their digit-prefix trie, published
+     * together so a lookup never pairs a new word list with an old trie.
+     */
+    private data class Tier1(val words: List<String>, val trie: TrieNode?)
 
-    /** Digit-prefix trie over tier-1; swapped atomically after a rebuild. */
     @Volatile
-    private var trieRoot: TrieNode? = null
+    private var tier1 = Tier1(emptyList(), null)
 
     /** Tier-2 file content (signature-sorted "sig\tword" lines) + line offsets. */
     private var rareText: String? = null
@@ -63,19 +65,18 @@ class EnglishLexicon(private val context: Context) {
 
     /** Load both assets on the caller's thread (call from a background thread). */
     fun prepare(onReady: (() -> Unit)? = null) {
-        val tier1 = ArrayList<String>()
+        val loaded = ArrayList<String>()
         try {
             context.assets.open("english_words.txt").use { stream ->
                 BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).forEachLine { line ->
                     val w = line.trim().lowercase()
-                    if (w.isNotEmpty() && w.all { it in 'a'..'z' }) tier1.add(w)
+                    if (w.isNotEmpty() && w.all { it in 'a'..'z' }) loaded.add(w)
                 }
             }
         } catch (e: Exception) {
             // No wordlist: the engine stays not-ready and lookups return empty.
         }
-        words = tier1
-        trieRoot = buildTrie(tier1)
+        tier1 = Tier1(loaded, buildTrie(loaded))
         // Tier-2: one big string + line offsets, so a prefix query is a binary
         // search plus a bounded forward scan (no per-word objects in memory).
         try {
@@ -95,14 +96,15 @@ class EnglishLexicon(private val context: Context) {
             rareText = null
             rareOffsets = IntArray(0)
         }
-        ready = words.isNotEmpty()
+        ready = loaded.isNotEmpty()
         onReady?.invoke()
     }
 
     /** Append cloud English words (Zipf order) to tier-1 and rebuild the trie. */
     fun addCloudWords(cloudWords: List<String>) {
         if (cloudWords.isEmpty()) return
-        val merged = ArrayList(words)
+        val snapshot = tier1
+        val merged = ArrayList(snapshot.words)
         val seen = merged.toHashSet()
         for (w in cloudWords) {
             if (w !in seen) {
@@ -110,8 +112,7 @@ class EnglishLexicon(private val context: Context) {
                 merged.add(w)
             }
         }
-        words = merged
-        trieRoot = buildTrie(merged)
+        tier1 = Tier1(merged, buildTrie(merged))
     }
 
     fun setRareZipf(zipf: Map<String, Float>) {
@@ -119,10 +120,10 @@ class EnglishLexicon(private val context: Context) {
     }
 
     /** Frequency rank of a tier-1 word (0 = most frequent), or -1. */
-    fun wordRank(word: String): Int = words.indexOf(word)
+    fun wordRank(word: String): Int = tier1.words.indexOf(word)
 
     /** Tier-1 words (built-in + cloud), for cloud dedupe. */
-    fun tier1Words(): Set<String> = words.toSet()
+    fun tier1Words(): Set<String> = tier1.words.toSet()
 
     fun signatureOf(word: String): String = buildString(word.length) {
         for (c in word) append(LETTER_TO_DIGIT[c] ?: '?')
@@ -135,6 +136,7 @@ class EnglishLexicon(private val context: Context) {
      * @param learned the user's picked words (word -> tap count).
      */
     fun lookup(digits: String, locked: List<Char?>, learned: Map<String, Int>): EnglishResult {
+        val snapshot = tier1
         val lastDigit = digits.lastOrNull()
         val letters = if (lastDigit == null) emptyList()
             else LETTER_GROUPS[lastDigit]?.toList() ?: emptyList()
@@ -157,11 +159,11 @@ class EnglishLexicon(private val context: Context) {
         // Then tier-1 by frequency. The trie walk stops at TRIE_DEPTH; the
         // node's top-30 are filtered by the full pattern, so words longer
         // than the trie depth still match.
-        val node = walkTrie(digits)
+        val node = walkTrie(digits, snapshot.trie)
         if (node != null) {
             for (idx in node.top) {
                 if (common.size >= TOP_COMMON) break
-                val word = words.getOrNull(idx) ?: continue
+                val word = snapshot.words.getOrNull(idx) ?: continue
                 if (word in learned) continue
                 if (!matchesPattern(word, digits, locked)) continue
                 common.add(word)
@@ -182,6 +184,7 @@ class EnglishLexicon(private val context: Context) {
      */
     fun correctByAdjacentKey(digits: String, locked: List<Char?>, learned: Map<String, Int>): Corrected? {
         if (digits.isEmpty() || !ready) return null
+        val snapshot = tier1
         var best: Corrected? = null
         var bestRank = Int.MAX_VALUE
         var producingCount = 0
@@ -199,10 +202,10 @@ class EnglishLexicon(private val context: Context) {
                 if (learned.any { (w, _) -> matchesPattern(w, cand, candLocked) }) {
                     rank = 0
                 } else {
-                    val node = walkTrie(cand)
+                    val node = walkTrie(cand, snapshot.trie)
                     if (node != null) {
                         for (idx in node.top) {
-                            val word = words.getOrNull(idx) ?: continue
+                            val word = snapshot.words.getOrNull(idx) ?: continue
                             if (!matchesPattern(word, cand, candLocked)) continue
                             rank = idx
                             break
@@ -238,8 +241,8 @@ class EnglishLexicon(private val context: Context) {
     }
 
     /** Walk the trie as far as the digits go (at most TRIE_DEPTH levels). */
-    private fun walkTrie(digits: String): TrieNode? {
-        var node = trieRoot ?: return null
+    private fun walkTrie(digits: String, root: TrieNode?): TrieNode? {
+        var node = root ?: return null
         var depth = 0
         for (d in digits) {
             if (depth >= TRIE_DEPTH) break

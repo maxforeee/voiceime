@@ -40,6 +40,8 @@ class CandidateBar(context: Context) : LinearLayout(context) {
     private var enLockedPrefix: String = ""
     private var enCorrected: Boolean = false
     private var aiCandidate: Candidate? = null
+    private var aiDivider: View? = null
+    private var aiCell: TextView? = null
 
     private val composingLabel = TextView(context).apply {
         textSize = 14f
@@ -63,6 +65,12 @@ class CandidateBar(context: Context) : LinearLayout(context) {
         addView(scroll, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
     }
 
+    override fun onDetachedFromWindow() {
+        dismissEnglishDropdown()
+        dismissSegmentationDropdown()
+        super.onDetachedFromWindow()
+    }
+
     fun update(
         composingText: String,
         candidates: List<Candidate>,
@@ -71,6 +79,8 @@ class CandidateBar(context: Context) : LinearLayout(context) {
     ) {
         dismissEnglishDropdown()
         aiCandidate = null
+        aiDivider = null
+        aiCell = null
         this.segmentations = segmentations
         this.selectedSegmentation = selectedSegmentation
         val canPick = segmentations.size > 1
@@ -348,9 +358,12 @@ class CandidateBar(context: Context) : LinearLayout(context) {
      */
     fun addAiCandidate(c: Candidate) {
         if (aiCandidate?.word == c.word) return
+        aiDivider?.let { row.removeView(it) }
+        aiCell?.let { row.removeView(it) }
         aiCandidate = c
+        var divider: View? = null
         if (row.childCount > 0) {
-            val divider = View(context).apply { setBackgroundColor(context.getColor(R.color.divider)) }
+            divider = View(context).apply { setBackgroundColor(context.getColor(R.color.divider)) }
             row.addView(
                 divider,
                 LayoutParams(context.dp(1f), context.dp(22f)).apply {
@@ -368,5 +381,7 @@ class CandidateBar(context: Context) : LinearLayout(context) {
             setOnClickListener { onTap?.invoke(c) }
         }
         row.addView(tv, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
+        aiDivider = divider
+        aiCell = tv
     }
 }

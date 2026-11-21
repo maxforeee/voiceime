@@ -275,6 +275,19 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
         return false
     }
 
+    override fun onDetachedFromWindow() {
+        // A press may never get UP/CANCEL if the view goes away mid-touch:
+        // kill pending long-press runnables and end an in-progress hold.
+        handler.removeCallbacksAndMessages(null)
+        downPending = false
+        arrowLongPressed = false
+        if (holdActive) {
+            holdActive = false
+            onHoldEnd?.invoke()
+        }
+        super.onDetachedFromWindow()
+    }
+
     companion object {
         private const val LONG_PRESS_MS = 350L
     }

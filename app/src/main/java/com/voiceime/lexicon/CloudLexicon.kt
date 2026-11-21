@@ -28,7 +28,7 @@ import kotlin.math.pow
  * requirement.
  *
  * Rules:
- * - Load order: common -> frequency -> proper/* (the collector's README
+ * - Load order: common -> frequency -> proper nouns (the collector's README
  *   order). A word already in the built-in lexicon is NOT stored again
  *   (dedupe by word+pinyin); the cloud DB only holds the gap.
  * - rime_ice.tsv (48 MB) downloads only on Wi-Fi, and only its head is
@@ -55,6 +55,7 @@ class CloudLexicon(
     enum class SyncResult { READY, ALREADY_READY, OFFLINE, PARTIAL, FAILED }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val syncExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val client = OkHttpClient.Builder()
         .callTimeout(60, TimeUnit.SECONDS)
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -72,14 +73,19 @@ class CloudLexicon(
 
     /** Start a sync on a background thread; onDone fires on the main thread. */
     fun sync(onDone: (SyncResult) -> Unit) {
-        Thread {
+        syncExecutor.execute {
             val result = try {
                 doSync()
             } catch (e: Exception) {
                 SyncResult.FAILED
             }
             mainHandler.post { onDone(result) }
-        }.start()
+        }
+    }
+
+    /** Stop the sync executor (called when the service is destroyed). */
+    fun shutdown() {
+        syncExecutor.shutdownNow()
     }
 
     private fun doSync(): SyncResult {
@@ -147,10 +153,16 @@ class CloudLexicon(
                 tmpDb.delete()
                 return if (ready) SyncResult.ALREADY_READY else SyncResult.FAILED
             }
-            if (dbFile.exists()) dbFile.delete()
-            tmpDb.renameTo(dbFile)
+            if (dbFile.exists() && !dbFile.delete() && dbFile.exists()) {
+                tmpDb.delete()
+                return if (ready) SyncResult.ALREADY_READY else SyncResult.FAILED
+            }
+            if (!tmpDb.renameTo(dbFile)) {
+                tmpDb.delete()
+                return if (ready) SyncResult.ALREADY_READY else SyncResult.FAILED
+            }
             prefs.edit().putString(KEY_GENERATED, generated).apply()
-            openDb(dbFile)
+            if (!openDb(dbFile)) return SyncResult.FAILED
             pushEnglishCloudData()
             return if (failCount == 0) SyncResult.READY else SyncResult.PARTIAL
         } finally {
@@ -160,17 +172,25 @@ class CloudLexicon(
     }
 
     /** Open the built cloud DB and hand it to the Chinese lexicon. */
-    private fun openDb(dbFile: File) {
-        try {
+    private fun openDb(dbFile: File): Boolean {
+        return try {
             val db = SQLiteDatabase.openDatabase(
                 dbFile.path, null, SQLiteDatabase.OPEN_READONLY
             )
-            cloudDb?.close()
+            val old = cloudDb
             cloudDb = db
             lexicon.attachCloudDb(db)
+            // Lookups query the snapshotted handle synchronously on the
+            // main thread; deferring the close to that thread guarantees
+            // it runs between lookups, never mid-query on the old DB.
+            if (old != null) {
+                mainHandler.post { try { old.close() } catch (e: Exception) { } }
+            }
             ready = true
+            true
         } catch (e: Exception) {
             ready = false
+            false
         }
     }
 
@@ -247,8 +267,10 @@ class CloudLexicon(
                 FileOutputStream(file).use { out ->
                     body.byteStream().use { input -> input.copyTo(out) }
                 }
-                if (entry.sizeBytes > 0 && file.length() != entry.sizeBytes) {
-                    // Size mismatch: the file changed mid-download; drop it.
+                val expected = if (entry.sizeBytes > 0) entry.sizeBytes
+                    else body.contentLength()
+                if (expected <= 0 || file.length() != expected) {
+                    // Unknown or mismatched size: unverifiable download; drop it.
                     file.delete()
                     return null
                 }
@@ -333,7 +355,8 @@ class CloudLexicon(
     /** Chinese frequency lists (no pinyin): only boost frequencies. */
     private fun parseFreqCount(db: SQLiteDatabase, file: File) {
         val stmt = db.compileStatement(
-            "INSERT OR REPLACE INTO freq_boost(word, freq) VALUES(?,?)"
+            "INSERT INTO freq_boost(word, freq) VALUES(?,?) " +
+                "ON CONFLICT(word) DO UPDATE SET freq = MAX(freq, excluded.freq)"
         )
         db.beginTransaction()
         try {
@@ -359,7 +382,8 @@ class CloudLexicon(
      *  frequencies — 10^zipf as a pseudo-count, same scale as jieba. */
     private fun parseZipfBoost(db: SQLiteDatabase, file: File) {
         val stmt = db.compileStatement(
-            "INSERT OR REPLACE INTO freq_boost(word, freq) VALUES(?,?)"
+            "INSERT INTO freq_boost(word, freq) VALUES(?,?) " +
+                "ON CONFLICT(word) DO UPDATE SET freq = MAX(freq, excluded.freq)"
         )
         db.beginTransaction()
         try {

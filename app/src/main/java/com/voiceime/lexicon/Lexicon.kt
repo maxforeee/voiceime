@@ -39,11 +39,14 @@ class Lexicon(private val context: Context) : CandidateProvider {
     @Volatile
     private var cloudDb: SQLiteDatabase? = null
     /** First (most frequent) pinyin reading per character, built in prepare(). */
-    private val charPinyinMap = HashMap<Char, String>()
+    @Volatile
+    private var charPinyinMap: Map<Char, String> = emptyMap()
     /** All 424 legal syllables, built in prepare() from the syl table. */
+    @Volatile
     private var syllableSet: Set<String> = emptySet()
     /** Built-in (word|pinyin) pairs, for cloud dedupe; built lazily. */
     private var builtInPairsCache: Set<String>? = null
+    private val pairsLock = Any()
 
     /** Copy the asset DB once, open it, load the syllable table + tap memory. */
     fun prepare() {
@@ -283,9 +286,10 @@ class Lexicon(private val context: Context) : CandidateProvider {
                 }
             }
         }
-        charPinyinMap.clear()
-        for ((ch, py) in best) charPinyinMap[ch] = py.first
-        builtInPairsCache = null
+        val pinyinMap = HashMap<Char, String>()
+        for ((ch, py) in best) pinyinMap[ch] = py.first
+        charPinyinMap = pinyinMap
+        synchronized(pairsLock) { builtInPairsCache = null }
     }
 
     /** All legal pinyin syllables (424), from the syl table. */
@@ -299,40 +303,42 @@ class Lexicon(private val context: Context) : CandidateProvider {
 
     /** Built-in (word|pinyin) pairs, for cloud dedupe; built once, lazily. */
     fun wordPinyinPairs(): Set<String> {
-        builtInPairsCache?.let { return it }
-        val database = db ?: return emptySet()
-        val out = HashSet<String>()
-        try {
-            val words = HashMap<Int, String>()
-            database.rawQuery("SELECT id, w FROM word", null).use { c ->
-                while (c.moveToNext()) words[c.getInt(0)] = c.getString(1)
-            }
-            database.rawQuery("SELECT p, ws FROM pykey", null).use { c ->
-                while (c.moveToNext()) {
-                    val pinyin = c.getString(0)
-                    val blob = c.getBlob(1)
-                    var pos = 0
-                    while (pos < blob.size) {
-                        var wid = 0
-                        var shift = 0
-                        while (true) {
-                            val b = blob[pos].toInt() and 0xFF
-                            pos++
-                            wid = wid or ((b and 0x7F) shl shift)
-                            if (b and 0x80 == 0) break
-                            shift += 7
+        synchronized(pairsLock) {
+            builtInPairsCache?.let { return it }
+            val database = db ?: return emptySet()
+            val out = HashSet<String>()
+            try {
+                val words = HashMap<Int, String>()
+                database.rawQuery("SELECT id, w FROM word", null).use { c ->
+                    while (c.moveToNext()) words[c.getInt(0)] = c.getString(1)
+                }
+                database.rawQuery("SELECT p, ws FROM pykey", null).use { c ->
+                    while (c.moveToNext()) {
+                        val pinyin = c.getString(0)
+                        val blob = c.getBlob(1)
+                        var pos = 0
+                        while (pos < blob.size) {
+                            var wid = 0
+                            var shift = 0
+                            while (true) {
+                                val b = blob[pos].toInt() and 0xFF
+                                pos++
+                                wid = wid or ((b and 0x7F) shl shift)
+                                if (b and 0x80 == 0) break
+                                shift += 7
+                            }
+                            pos += 2
+                            val word = words[wid] ?: continue
+                            out.add("$word|$pinyin")
                         }
-                        pos += 2
-                        val word = words[wid] ?: continue
-                        out.add("$word|$pinyin")
                     }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "wordPinyinPairs failed: ${e.javaClass.simpleName}")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "wordPinyinPairs failed: ${e.javaClass.simpleName}")
+            builtInPairsCache = out
+            return out
         }
-        builtInPairsCache = out
-        return out
     }
 
     /** Attach (or detach, with null) the cloud lexicon DB. */
@@ -410,17 +416,29 @@ class Lexicon(private val context: Context) : CandidateProvider {
             }
         }
         var bestVariant: String? = null
+        var bestWord: String? = null
         var bestFreq = 0
         var secondFreq = 0
+        var examined = 0
         for (v in variants) {
+            if (examined >= CORRECT_MAX_VARIANTS) break
+            if (bestFreq >= CORRECT_MIN_FREQ && secondFreq > 0 &&
+                bestFreq >= CORRECT_MARGIN * secondFreq) break
+            examined++
             val segs = segment(v)
             if (segs.isEmpty()) continue
-            val top = topWord(v) ?: continue
+            val top = topWord(segs) ?: continue
             var freq = top.second
             if (contextMatch(top.first, segs[0][0], beforeText)) freq *= CONTEXT_FREQ_MULT
-            if (freq > bestFreq) {
+            if (top.first == bestWord) {
+                if (freq > bestFreq) {
+                    bestFreq = freq
+                    bestVariant = v
+                }
+            } else if (freq > bestFreq) {
                 secondFreq = bestFreq
                 bestFreq = freq
+                bestWord = top.first
                 bestVariant = v
             } else if (freq > secondFreq) {
                 secondFreq = freq
@@ -436,9 +454,13 @@ class Lexicon(private val context: Context) : CandidateProvider {
 
     /** Highest-scoring word for a digit string, with its corpus count. */
     private fun topWord(digits: String): Pair<String, Int>? {
-        val database = db ?: return null
         val segs = segment(digits)
         if (segs.isEmpty()) return null
+        return topWord(segs)
+    }
+
+    private fun topWord(segs: List<List<String>>): Pair<String, Int>? {
+        val database = db ?: return null
         val keys = segs.map { it.joinToString("") }.distinct()
         val entries = ArrayList<Triple<Int, Double, String>>()
         for (key in keys) entries.addAll(readKey(database, key))
@@ -628,6 +650,9 @@ class Lexicon(private val context: Context) : CandidateProvider {
         /** A correction's top word must be this many times more frequent
          *  than the runner-up variant's top word (a clear margin). */
         private const val CORRECT_MARGIN = 3
+        /** Hard backstop on variants examined by suggestCorrection; the
+         *  early stop on a clear leader usually fires much sooner. */
+        private const val CORRECT_MAX_VARIANTS = 120
         /** Context match (preceding char + corrected word form a known word)
          *  doubles the variant's frequency when comparing. */
         private const val CONTEXT_FREQ_MULT = 2

@@ -1,0 +1,115 @@
+# VoiceIME 自建专有名词库 · 中文名
+# 格式: 词<TAB>拼音（音节空格分开，不带声调，ü 写 v）
+# 来源: 人工整理（公开常识）——公司/品牌/地名/人名，标准词表里没有或排不上的专有名词。
+# 构建时并进 lexicon.db；词频默认 2000（中等常用词档），保证能联想出来但不压过日常高频词。
+# 以后用户说加什么名字就加什么。
+谷歌	gu ge
+微软	wei ruan
+苹果	ping guo
+亚马逊	ya ma xun
+特斯拉	te si la
+英伟达	ying wei da
+字节跳动	zi jie tiao dong
+阿里巴巴	a li ba ba
+腾讯	teng xun
+百度	bai du
+华为	hua wei
+小米	xiao mi
+深度求索	shen du qiu suo
+通义千问	tong yi qian wen
+豆包	dou bao
+三星	san xing
+索尼	suo ni
+英特尔	ying te er
+甲骨文	jia gu wen
+奈飞	nai fei
+迪士尼	di shi ni
+可口可乐	ke kou ke le
+麦当劳	mai dang lao
+星巴克	xing ba ke
+耐克	nai ke
+阿迪达斯	a di da si
+北京	bei jing
+上海	shang hai
+广州	guang zhou
+深圳	shen zhen
+香港	xiang gang
+台北	tai bei
+东京	dong jing
+纽约	niu yue
+伦敦	lun dun
+巴黎	ba li
+旧金山	jiu jin shan
+硅谷	gui gu
+洛杉矶	luo shan ji
+芝加哥	zhi jia ge
+波士顿	bo shi dun
+西雅图	xi ya tu
+首尔	shou er
+新加坡	xin jia po
+悉尼	xi ni
+墨尔本	mo er ben
+多伦多	duo lun duo
+温哥华	wen ge hua
+柏林	bo lin
+慕尼黑	mu ni hei
+莫斯科	mo si ke
+孟买	meng mai
+新德里	xin de li
+马斯克	ma si ke
+乔布斯	qiao bu si
+比尔盖茨	bi er gai ci
+扎克伯格	zha ke bo ge
+黄仁勋	huang ren xun
+奥特曼	ao te man
+梁文锋	liang wen feng
+雷军	lei jun
+马云	ma yun
+马化腾	ma hua teng
+李彦宏	li yan hong
+任正非	ren zheng fei
+张一鸣	zhang yi ming
+王兴	wang xing
+刘强东	liu qiang dong
+丁磊	ding lei
+周鸿祎	zhou hong yi
+李开复	li kai fu
+姚明	yao ming
+谷爱凌	gu ai ling
+全红婵	quan hong chan
+苏炳添	su bing tian
+樊振东	fan zhen dong
+孙颖莎	sun ying sha
+郑钦文	zheng qin wen
+王楚钦	wang chu qin
+马龙	ma long
+郎平	lang ping
+郭晶晶	guo jing jing
+李娜	li na
+刘翔	liu xiang
+柯洁	ke jie
+杨振宁	yang zhen ning
+屠呦呦	tu you you
+莫言	mo yan
+余华	yu hua
+刘慈欣	liu ci xin
+金庸	jin yong
+鲁迅	lu xun
+李白	li bai
+杜甫	du fu
+苏轼	su shi
+李清照	li qing zhao
+孔子	kong zi
+老子	lao zi
+孟子	meng zi
+孙子	sun zi
+秦始皇	qin shi huang
+汉武帝	han wu di
+唐太宗	tang tai zong
+成吉思汗	cheng ji si han
+康熙	kang xi
+乾隆	qian long
+孙中山	sun zhong shan
+毛泽东	mao ze dong
+周恩来	zhou en lai
+邓小平	deng xiao ping

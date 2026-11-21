@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """VoiceIME build-time lexicon converter (NOT app code).
 
-Turns m2_verify/luna_pinyin.dict.yaml + m2_verify/ice_base.dict.yaml into a
-compact SQLite DB bundled in the APK (app/src/main/assets/lexicon.db), with
+Turns m2_verify/luna_pinyin.dict.yaml + m2_verify/ice_base.dict.yaml +
+m2_verify/jieba_dict.txt (pinyin generated from m2_verify/pinyin.txt) +
+tools/proper_nouns_zh.txt (our own proper-noun lexicon) into a compact
+SQLite DB bundled in the APK (app/src/main/assets/lexicon.db), with
 rankings baked from m2_verify/zh_full.txt (build-time only, never shipped).
 
 Parsing / normalization / ranking replicate m2_verify/t9_verify.py exactly:
@@ -17,7 +19,7 @@ Trim policy (to hit the few-MB target): keep an entry when
 Rare phrases with no corpus frequency are dropped; the app falls back to
 per-syllable characters for those (same fallback idea as t9_verify.py).
 
-Schema (schema_version=1):
+Schema (schema_version=2, bumped in v1.3.0 when jieba + proper nouns joined):
   meta(k TEXT PK, v TEXT)
   word(id INTEGER PK, w TEXT, f INTEGER)          -- f = raw corpus count (0 if absent)
   pykey(p TEXT PK, ws BLOB) WITHOUT ROWID         -- p = joined pinyin, ws = packed
@@ -49,6 +51,11 @@ FILES = [
     ("ice_base.dict.yaml", "int"),
 ]
 FREQ_FILE = "zh_full.txt"
+# v1.3.0 extra sources: jieba words are kept only when their corpus
+# frequency is at least this (real words; the tail below is mostly noise);
+# proper nouns get this corpus count when they have no real one.
+JIEBA_MIN_FREQ = 10
+PROPER_FREQ = 2000
 
 T9 = {}
 for d, letters in {"2": "abc", "3": "def", "4": "ghi", "5": "jkl",
@@ -99,6 +106,7 @@ def main():
 
     t0 = time.time()
     word_by_pinyin = defaultdict(list)  # key -> [(norm, order, word)]
+    dict_words = set()  # every word already in luna/ice (jieba must not re-add)
     syl_set = set()
     order = 0
     for fname, kind in FILES:
@@ -124,6 +132,7 @@ def main():
         for word, syls, w in rows:
             norm = w if kind == "pct" else (w / mx if mx else 0.0)
             word_by_pinyin["".join(syls)].append((norm, order, word))
+            dict_words.add(word)
             order += 1
         print(f"{fname}: entries={len(rows)}", flush=True)
 
@@ -138,6 +147,81 @@ def main():
                     pass
     print(f"freq list: {len(freq)} words; merged keys={len(word_by_pinyin)} "
           f"syllables={len(syl_set)} parse={time.time()-t0:.1f}s", flush=True)
+
+    # ---- extra sources (v1.3.0) --------------------------------------------
+    # jieba dict: word + corpus frequency, no pinyin. Pinyin is generated per
+    # character from pinyin-data (first reading = most common). Only words
+    # NOT already in luna/ice are added, and only with jieba freq >= 10
+    # (real words; the long tail below 10 is mostly noise). Generated
+    # syllables must all be in the 424-syllable table, else the word is
+    # skipped (avoids inventing readings for rare characters).
+    TONE = str.maketrans(
+        "āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü", "aaaaeeeeiiiioooouuuuvvvvv")
+    char_py = {}
+    with open(os.path.join(SRC, "pinyin.txt"), encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("#") or ":" not in line or "#" not in line:
+                continue
+            left, right = line.split(":", 1)
+            readings = right.split("#", 1)[0].strip().split(",")
+            ch = right.split("#", 1)[1].strip()
+            if ch and readings:
+                char_py[ch] = [r.strip().translate(TONE).replace("ü", "v")
+                               for r in readings if r.strip()]
+    jieba_new = 0
+    jieba_freq = {}
+    with open(os.path.join(SRC, "jieba_dict.txt"), encoding="utf-8") as f:
+        for line in f:
+            parts = line.rstrip("\n").split(" ")
+            if len(parts) < 2:
+                continue
+            word, fq = parts[0], parts[1]
+            try:
+                fq = int(fq)
+            except ValueError:
+                continue
+            if fq < JIEBA_MIN_FREQ or word in dict_words:
+                continue
+            if not all("\u4e00" <= ch <= "\u9fff" for ch in word):
+                continue
+            syls = []
+            ok = True
+            for ch in word:
+                r = char_py.get(ch)
+                if not r or r[0] not in syl_set:
+                    ok = False
+                    break
+                syls.append(r[0])
+            if not ok:
+                continue
+            word_by_pinyin["".join(syls)].append((0.5, order, word))
+            order += 1
+            jieba_freq[word] = fq
+            jieba_new += 1
+    for w, fq in jieba_freq.items():
+        freq.setdefault(w, fq)
+    print(f"jieba: new words={jieba_new} (freq>={JIEBA_MIN_FREQ}, not in luna/ice)", flush=True)
+
+    # Proper nouns (our own lexicon): curated list, explicit pinyin.
+    # Default corpus count PROPER_FREQ (medium-common tier) when the word
+    # has no real corpus count; norm weight 1.0 (top within its key).
+    proper_new = 0
+    with open(os.path.join(ROOT, "tools", "proper_nouns_zh.txt"), encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "\t" not in line:
+                continue
+            word, py = line.split("\t", 1)
+            syls = py.strip().split()
+            bad = [s for s in syls if s not in syl_set]
+            if bad:
+                raise SystemExit(f"proper noun {word}: unknown syllable(s) {bad}")
+            word_by_pinyin["".join(syls)].append((1.0, order, word))
+            order += 1
+            freq.setdefault(word, PROPER_FREQ)
+            proper_new += 1
+    print(f"proper nouns (zh): {proper_new}", flush=True)
+
 
     def fs_of(word):
         c = freq.get(word)
@@ -213,9 +297,9 @@ def main():
     con.executemany("INSERT INTO prefix VALUES (?,?,?)", prefix_rows)
     con.executemany("INSERT INTO syl VALUES (?,?)", syl_rows)
     meta = {
-        "schema_version": "1",
+        "schema_version": "2",
         "built_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "sources": "rime-luna-pinyin (LGPLv3) + rime-ice base (GPLv3); ranks: FrequencyWords zh_full (OpenSubtitles, build-time only)",
+        "sources": "rime-luna-pinyin (LGPLv3) + rime-ice base (GPLv3) + jieba dict (Apache-2.0, pinyin generated from mozillazg/pinyin-data, CC0) + VoiceIME proper nouns (own); ranks: FrequencyWords zh_full (OpenSubtitles, build-time only)",
         "policy": f"keep single chars OR freq>={args.min_freq} OR norm_weight>={args.min_weight}; prefix_top={args.prefix_top}",
         "words": str(len(word_ids)),
         "pykeys": str(len(py_rows)),

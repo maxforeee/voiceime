@@ -13,4 +13,7 @@ data class CandidateResult(val pinyin: String, val candidates: List<Candidate>)
 interface CandidateProvider {
     fun lookup(digits: String): CandidateResult
     fun rememberTap(word: String) {}
+
+    /** Best pinyin reading of a digit string, for the online suggestion query. */
+    fun pinyinFor(digits: String): String = digits
 }

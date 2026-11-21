@@ -10,6 +10,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.Toast
 import com.voiceime.lexicon.Lexicon
+import com.voiceime.online.GoogleSuggestions
 import com.voiceime.ui.CandidateBar
 import com.voiceime.ui.T9KeyboardView
 import com.voiceime.ui.dp
@@ -46,6 +47,14 @@ class VoiceImeService : InputMethodService() {
     private var tapIndex = 0
     private var tapLetter: String? = null
     private val tapTimeout = Runnable { finalizeTap() }
+
+    // Online suggestions: debounced, 300ms drop deadline, never blocks typing.
+    private val online = GoogleSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
+    private var lastLocal = CandidateResult("", emptyList())
+    private val onlineRequest = Runnable {
+        val d = digits.toString()
+        if (d.isNotEmpty()) online.request(d, candidateProvider?.pinyinFor(d) ?: d)
+    }
 
     override fun onCreateInputView(): View {
         val root = LinearLayout(this).apply {
@@ -93,6 +102,8 @@ class VoiceImeService : InputMethodService() {
 
     private fun resetInput() {
         handler.removeCallbacks(tapTimeout)
+        handler.removeCallbacks(onlineRequest)
+        online.cancel()
         tapLetter = null
         digits.clear()
         symbolsPage = false
@@ -232,7 +243,24 @@ class VoiceImeService : InputMethodService() {
         } else {
             candidateProvider?.lookup(d) ?: CandidateResult(d, emptyList())
         }
+        lastLocal = result
         candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates)
+        // Local candidates are already on screen; only now arm the network.
+        online.cancel()
+        handler.removeCallbacks(onlineRequest)
+        if (d.isNotEmpty() && lang == Lang.ZH && !symbolsPage) {
+            handler.postDelayed(onlineRequest, ONLINE_DEBOUNCE_MS)
+        }
+    }
+
+    /** Online results merge in front of local ones, deduped by word. */
+    private fun onOnlineResult(d: String, words: List<String>) {
+        if (d != digits.toString() || words.isEmpty()) return
+        val onlineSet = words.toHashSet()
+        val merged = ArrayList<Candidate>(words.size + lastLocal.candidates.size)
+        for (w in words) merged.add(Candidate(w))
+        for (c in lastLocal.candidates) if (c.word !in onlineSet) merged.add(c)
+        candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged)
     }
 
     private fun commitCandidate(c: Candidate) {
@@ -262,6 +290,7 @@ class VoiceImeService : InputMethodService() {
     companion object {
         private const val TAP_TIMEOUT_MS = 900L
         private const val MAX_DIGITS = 20
+        private const val ONLINE_DEBOUNCE_MS = 100L
         private val LETTER_GROUPS = mapOf(
             '2' to "abc", '3' to "def", '4' to "ghi", '5' to "jkl",
             '6' to "mno", '7' to "pqrs", '8' to "tuv", '9' to "wxyz"

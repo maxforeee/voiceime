@@ -138,6 +138,24 @@ class Lexicon(private val context: Context) : CandidateProvider {
         prefs.edit().putString(KEY_TAPS, json.toString()).apply()
     }
 
+    /**
+     * Pinyin string for the online query: the first full segmentation when one
+     * exists; otherwise the longest segmentable prefix plus a best-effort letter
+     * per leftover digit (partial pinyin is accepted by the endpoint).
+     */
+    override fun pinyinFor(digits: String): String {
+        val segs = segment(digits)
+        if (segs.isNotEmpty()) return segs[0].joinToString("")
+        for (end in digits.length - 1 downTo 1) {
+            val s = segment(digits.substring(0, end))
+            if (s.isNotEmpty()) {
+                val rest = digits.substring(end).map { FIRST_LETTER[it] ?: "" }.joinToString("")
+                return s[0].joinToString("") + rest
+            }
+        }
+        return digits.map { FIRST_LETTER[it] ?: "" }.joinToString("")
+    }
+
     // ---- segmentation (exact port of t9_verify.py segment()) ----------------
 
     private fun segment(digits: String, cap: Int = 200): List<List<String>> {
@@ -250,5 +268,9 @@ class Lexicon(private val context: Context) : CandidateProvider {
         private const val KEY_TAPS = "taps"
         private const val TOP_N = 50
         private const val MAX_TAPS = 1000
+        private val FIRST_LETTER = mapOf(
+            '2' to 'a', '3' to 'd', '4' to 'g', '5' to 'j',
+            '6' to 'm', '7' to 'p', '8' to 't', '9' to 'w'
+        )
     }
 }

@@ -171,20 +171,11 @@ class VoiceImeService : InputMethodService() {
 
         keyboard = T9KeyboardView(this)
         keyboard.onKey = { k -> onKey(k) }
-        // Gboard-style fixed height: measure the typing keyboard ONCE (main and
-        // symbol pages) and give all three panels the SAME height, so switching
-        // panels never changes the window height; panels scroll internally.
+        // Gboard-style fixed height: all three panels share the typing
+        // keyboard's formula height, so switching panels never changes the
+        // window height; panels scroll internally.
         keyboard.showMain(lang == Lang.ZH)
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(
-            resources.displayMetrics.widthPixels, View.MeasureSpec.EXACTLY
-        )
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        keyboard.measure(widthSpec, heightSpec)
-        val mainHeight = keyboard.measuredHeight
-        keyboard.showSymbols()
-        keyboard.measure(widthSpec, heightSpec)
-        val panelHeight = maxOf(mainHeight, keyboard.measuredHeight)
-        keyboard.showMain(lang == Lang.ZH)
+        val panelHeight = keyboard.panelHeightPx
         root.addView(keyboard, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
         voiceView = VoiceKeyboardView(this).apply {
@@ -215,11 +206,6 @@ class VoiceImeService : InputMethodService() {
             onClose = { closeClipboardPanel() }
         }
         root.addView(clipboardPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
-
-        // Filler: if the IME window ends up taller than the fixed-height
-        // panels, this keeps the bottom area in the keyboard colour.
-        val bottomFiller = View(this).apply { setBackgroundColor(getColor(R.color.keyboard_bg)) }
-        root.addView(bottomFiller, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
 
         return root
     }

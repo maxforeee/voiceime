@@ -32,6 +32,11 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     private val gap = context.dp(4f)
     private var keyPreview: PopupWindow? = null
 
+    /** Fixed height shared by all panels: 5 main rows + vertical padding.
+     *  The 6 symbol rows fit it because symbolKeyHeight = keyHeight * 5 / 6. */
+    val panelHeightPx: Int
+        get() = paddingTop + paddingBottom + 5 * keyHeight
+
     init {
         orientation = VERTICAL
         setBackgroundColor(context.getColor(R.color.keyboard_bg))

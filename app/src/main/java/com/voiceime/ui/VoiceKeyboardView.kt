@@ -1,6 +1,7 @@
 package com.voiceime.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -135,6 +136,10 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
         val color = if (recording) context.getColor(R.color.voice_listening)
         else context.getColor(R.color.accent)
         micButton.background = oval(color)
+        // The mic glyph sits on the accent oval: white-on-blue in light mode,
+        // dark-on-light-blue in dark mode (white on #8AB4F8 is too weak).
+        micButton.imageTintList =
+            ColorStateList.valueOf(context.getColor(R.color.on_accent))
     }
 
     private fun oval(color: Int) = GradientDrawable().apply {

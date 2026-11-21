@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Gboard dark palette: same names as values/colors.xml, resolved by uiMode.
+         The light theme in values/colors.xml is untouched. -->
+    <color name="keyboard_bg">#2D2D2D</color>
+    <color name="key_bg">#474747</color>
+    <color name="key_bg_pressed">#5A5A5A</color>
+    <color name="key_function_bg">#373737</color>
+    <color name="key_text">#E8EAED</color>
+    <color name="key_text_secondary">#9AA0A6</color>
+    <color name="accent">#8AB4F8</color>
+    <color name="on_accent">#202124</color>
+    <color name="candidate_text">#E8EAED</color>
+    <color name="candidate_selected">#8AB4F8</color>
+    <color name="divider">#5F6368</color>
+    <color name="voice_listening">#F28B82</color>
+    <color name="status_text">#9AA0A6</color>
+    <color name="error_text">#F28B82</color>
+</resources>

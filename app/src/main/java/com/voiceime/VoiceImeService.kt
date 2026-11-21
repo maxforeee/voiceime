@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.net.ConnectivityManager
@@ -640,7 +639,7 @@ class VoiceImeService : InputMethodService() {
             text = getString(R.string.voice_popup_end)
             textSize = 15f
             gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
+            setTextColor(getColor(R.color.on_accent))
             background = GradientDrawable().apply {
                 cornerRadius = dp(10f).toFloat()
                 setColor(getColor(R.color.accent))

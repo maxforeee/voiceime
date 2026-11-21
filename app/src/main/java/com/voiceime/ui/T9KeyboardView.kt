@@ -223,9 +223,9 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         } else {
             SpannableStringBuilder("$digit\n$letters").apply {
                 setSpan(RelativeSizeSpan(0.65f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                // Darker than key_text_secondary so the small letters stay readable.
+                // Follows the theme (light grey / dark grey) via key_text_secondary.
                 setSpan(
-                    ForegroundColorSpan(0xFF5F6368.toInt()),
+                    ForegroundColorSpan(context.getColor(R.color.key_text_secondary)),
                     digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }

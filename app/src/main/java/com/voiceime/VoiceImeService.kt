@@ -27,6 +27,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.voiceime.asr.AudioCapture
 import com.voiceime.asr.DoubaoAsrClient
+import com.voiceime.asr.SemanticCorrector
 import com.voiceime.clipboard.ClipboardHistory
 import com.voiceime.lexicon.Lexicon
 import com.voiceime.online.GoogleSuggestions
@@ -44,8 +45,10 @@ import com.voiceime.ui.dp
  *    debounced online suggestions, 中/英 multitap and 数字/符号 page.
  *  - VOICE: big mic button (hold-to-talk AND tap-toggle), live text in a
  *    popup window above the keyboard, Doubao streaming ASR, final text
- *    committed once via commitText(). The bottom-right "修改" key shows a
- *    coming-soon toast (editing is not implemented yet).
+ *    semantically corrected by the backend and committed once via
+ *    commitText() (original text on backend failure/timeout). The
+ *    bottom-right "修改" key shows a coming-soon toast (editing is not
+ *    implemented yet).
  *
  * Interrupt safety: switching modes / finishing input stops recording first;
  * no-network / no-permission / recognition failures show a message and never
@@ -118,6 +121,17 @@ class VoiceImeService : InputMethodService() {
     private var committed = false
     private val processingTimeout = Runnable {
         if (voiceState == VoiceState.PROCESSING) failSession(getString(R.string.voice_timeout))
+    }
+
+    // Semantic correction of the ASR final text. While pendingOriginal is
+    // set, the correction flow owns the session: late ASR close/error events
+    // are ignored and the original text is the fallback that gets committed.
+    private val corrector = SemanticCorrector()
+    private var pendingOriginal: String? = null
+    private val correctionTimeout = Runnable {
+        val original = pendingOriginal ?: return@Runnable
+        commitOnce(original)
+        finishVoiceSession()
     }
 
     // Live-text popup: a separate window above the keyboard, so the fixed
@@ -353,6 +367,7 @@ class VoiceImeService : InputMethodService() {
         val id = ++sessionId
         committed = false
         lastInterim = ""
+        pendingOriginal = null
         voiceState = if (hold) VoiceState.RECORDING_HOLD else VoiceState.RECORDING_TAP
         voiceView.recording = true
         voiceView.holdMode = hold
@@ -424,19 +439,60 @@ class VoiceImeService : InputMethodService() {
 
     private fun onAsrFinal(text: String) {
         handler.removeCallbacks(processingTimeout)
+        voiceState = VoiceState.PROCESSING
+        voiceView.recording = false
+        voiceView.micEnabled = false
+        capture?.stop()
+        capture = null
         setPopupText(text)
-        commitOnce(text)
+        setPopupCorrecting(true)
+        voiceView.setStatus(getString(R.string.voice_correcting))
+        if (text.isEmpty()) {
+            finishVoiceSession()
+            return
+        }
+        // Backend semantic correction; on any failure the original text is
+        // committed instead. The sessionId guard drops late callbacks after
+        // a mode switch / input finish.
+        pendingOriginal = text
+        val id = sessionId
+        handler.removeCallbacks(correctionTimeout)
+        handler.postDelayed(correctionTimeout, CORRECTION_TIMEOUT_MS)
+        corrector.correct(text) { corrected ->
+            handler.post { if (id == sessionId) onCorrectionDone(text, corrected) }
+        }
+    }
+
+    private fun onCorrectionDone(original: String, corrected: String?) {
+        handler.removeCallbacks(correctionTimeout)
+        val out = corrected ?: original
+        setPopupText(out)
+        commitOnce(out)
+        finishVoiceSession()
+    }
+
+    /** Correction finished (or gave up): commit happened, back to idle. */
+    private fun finishVoiceSession() {
+        handler.removeCallbacks(correctionTimeout)
+        pendingOriginal = null
+        corrector.cancel()
         cleanupSession()
         voiceState = VoiceState.IDLE
         voiceView.recording = false
         voiceView.micEnabled = true
         voiceView.setInterim("")
-        voiceView.setStatus(getString(R.string.voice_done))
+        setPopupCorrecting(false)
+        voiceView.setStatus(
+            getString(if (committed) R.string.voice_done else R.string.voice_hint_idle)
+        )
         // Let the final text stay readable for a moment before the popup goes.
         handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
     }
 
     private fun onAsrClosed() {
+        // Correction in flight owns the session; the close is expected after
+        // the final packet and must not tear down the pending commit.
+        if (pendingOriginal != null) return
         handler.removeCallbacks(processingTimeout)
         // Connection dropped without a final packet: salvage the last interim.
         if (asrClient?.gotFinal != true) commitOnce(lastInterim)
@@ -452,6 +508,9 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun failSession(message: String) {
+        // Final text already received: a late ASR error must not discard it;
+        // the correction flow commits the original on its own failure.
+        if (pendingOriginal != null) return
         handler.removeCallbacks(processingTimeout)
         sessionId++
         capture?.stop()
@@ -470,12 +529,18 @@ class VoiceImeService : InputMethodService() {
     /** Mode switch / input finished: stop recording FIRST, then tear down. */
     private fun stopVoiceSession(salvage: Boolean) {
         handler.removeCallbacks(processingTimeout)
+        handler.removeCallbacks(correctionTimeout)
         val wasActive = asrClient != null || voiceState != VoiceState.IDLE
+        // Correction in flight: the final text beats the last interim, and
+        // the late correction callback is dropped by the sessionId bump.
+        val salvageText = pendingOriginal ?: lastInterim
+        pendingOriginal = null
+        corrector.cancel()
         sessionId++
         capture?.stop()
         capture = null
-        if (salvage && wasActive && !committed && lastInterim.isNotEmpty()) {
-            commitOnce(lastInterim)
+        if (salvage && wasActive && !committed && salvageText.isNotEmpty()) {
+            commitOnce(salvageText)
         }
         asrClient?.cancel()
         asrClient = null
@@ -838,6 +903,8 @@ class VoiceImeService : InputMethodService() {
         private const val MAX_DIGITS = 20
         private const val ONLINE_DEBOUNCE_MS = 100L
         private const val FINAL_TIMEOUT_MS = 8000L
+        // Backstop just above the corrector's own 15s call timeout.
+        private const val CORRECTION_TIMEOUT_MS = 16000L
         private const val POPUP_LINGER_MS = 1500L
         private val LETTER_GROUPS = mapOf(
             '2' to "abc", '3' to "def", '4' to "ghi", '5' to "jkl",

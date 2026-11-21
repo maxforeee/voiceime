@@ -1,6 +1,7 @@
 package com.voiceime.lexicon
 
 import android.content.Context
+import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.voiceime.Candidate
@@ -29,12 +30,15 @@ import kotlin.math.min
 class Lexicon(private val context: Context) : CandidateProvider {
 
     private var db: SQLiteDatabase? = null
+    private var learnedDb: SQLiteDatabase? = null
     private val sylByDigits = HashMap<String, List<String>>()
     private val taps = HashMap<String, Int>()
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     /** Copy the asset DB once, open it, load the syllable table + tap memory. */
     fun prepare() {
+        openLearnedDb()
+        loadTaps()
         try {
             val dbFile = File(context.filesDir, DB_NAME)
             if (!dbFile.exists()) copyAsset(dbFile)
@@ -53,7 +57,6 @@ class Lexicon(private val context: Context) : CandidateProvider {
                 }
                 for ((d, list) in tmp) sylByDigits[d] = list.sorted()
             }
-            loadTaps()
         } catch (e: Exception) {
             // Typing must keep working even if the lexicon cannot be opened.
             Log.e(TAG, "lexicon prepare failed: ${e.javaClass.simpleName}")
@@ -157,14 +160,24 @@ class Lexicon(private val context: Context) : CandidateProvider {
     }
 
     override fun rememberTap(word: String) {
-        taps[word] = min((taps[word] ?: 0) + 1, 100)
+        val n = min((taps[word] ?: 0) + 1, 100)
+        taps[word] = n
         if (taps.size > MAX_TAPS) {
             val coldest = taps.entries.sortedBy { it.value }.take(taps.size - MAX_TAPS)
-            coldest.forEach { taps.remove(it.key) }
+            coldest.forEach {
+                taps.remove(it.key)
+                learnedDb?.delete("learned", "word=?", arrayOf(it.key))
+            }
         }
-        val json = JSONObject()
-        taps.forEach { (w, n) -> json.put(w, n) }
-        prefs.edit().putString(KEY_TAPS, json.toString()).apply()
+        learnedDb?.let { database ->
+            val values = ContentValues().apply {
+                put("word", word)
+                put("count", n)
+                put("last_used", System.currentTimeMillis())
+            }
+            val updated = database.update("learned", values, "word=?", arrayOf(word))
+            if (updated == 0) database.insert("learned", null, values)
+        }
     }
 
     /**
@@ -278,20 +291,87 @@ class Lexicon(private val context: Context) : CandidateProvider {
             if (c.moveToNext()) c.getString(0) else ""
         }
 
-    private fun loadTaps() {
-        taps.clear()
+    /** Learned words live in their own SQLite database (local only, never
+     *  uploaded). The bundled lexicon.db is read-only and re-copied from
+     *  assets on a schema bump, so learning must not live in it. */
+    private fun openLearnedDb() {
+        try {
+            val file = File(context.filesDir, LEARNED_DB_NAME)
+            learnedDb = SQLiteDatabase.openOrCreateDatabase(file.path, null)
+            learnedDb?.execSQL(
+                "CREATE TABLE IF NOT EXISTS learned(" +
+                "word TEXT PRIMARY KEY, count INTEGER NOT NULL, " +
+                "last_used INTEGER NOT NULL)"
+            )
+            migrateLegacyTaps()
+        } catch (e: Exception) {
+            Log.e(TAG, "learned db unavailable: ${e.javaClass.simpleName}")
+            learnedDb = null
+        }
+    }
+
+    /** One-time move of the old SharedPreferences tap memory into the DB. */
+    private fun migrateLegacyTaps() {
         val raw = prefs.getString(KEY_TAPS, null) ?: return
         try {
             val json = JSONObject(raw)
-            for (key in json.keys()) taps[key] = json.getInt(key)
+            val now = System.currentTimeMillis()
+            for (key in json.keys()) {
+                val values = ContentValues().apply {
+                    put("word", key)
+                    put("count", json.getInt(key))
+                    put("last_used", now)
+                }
+                learnedDb?.insertWithOnConflict(
+                    "learned", null, values, SQLiteDatabase.CONFLICT_IGNORE
+                )
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "tap memory reset")
+            Log.e(TAG, "tap migration failed: ${e.javaClass.simpleName}")
+        } finally {
+            prefs.edit().remove(KEY_TAPS).apply()
         }
+    }
+
+    private fun loadTaps() {
+        taps.clear()
+        val database = learnedDb ?: return
+        try {
+            database.rawQuery("SELECT word, count FROM learned", null).use { c ->
+                while (c.moveToNext()) taps[c.getString(0)] = c.getInt(1)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "tap load failed: ${e.javaClass.simpleName}")
+        }
+    }
+
+    /** All learned words, most-used first, for the Settings export. */
+    override fun learnedWords(): List<LearnedWord> {
+        val database = learnedDb
+        if (database == null) {
+            return taps.entries.sortedByDescending { it.value }
+                .map { LearnedWord(it.key, it.value, 0L) }
+        }
+        val out = ArrayList<LearnedWord>()
+        try {
+            database.rawQuery(
+                "SELECT word, count, last_used FROM learned ORDER BY count DESC, last_used DESC",
+                null
+            ).use { c ->
+                while (c.moveToNext()) {
+                    out.add(LearnedWord(c.getString(0), c.getInt(1), c.getLong(2)))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "learned list failed: ${e.javaClass.simpleName}")
+        }
+        return out
     }
 
     companion object {
         private const val TAG = "VoiceImeLexicon"
         private const val DB_NAME = "lexicon.db"
+        private const val LEARNED_DB_NAME = "learned.db"
         private const val SCHEMA_VERSION = "1"
         private const val PREFS = "voiceime_lexicon"
         private const val KEY_TAPS = "taps"

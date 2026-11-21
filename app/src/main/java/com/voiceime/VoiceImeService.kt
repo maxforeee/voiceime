@@ -30,13 +30,18 @@ import com.voiceime.asr.DoubaoAsrClient
 import com.voiceime.asr.SemanticCorrector
 import com.voiceime.clipboard.ClipboardHistory
 import com.voiceime.lexicon.Lexicon
-import com.voiceime.online.GoogleSuggestions
+import com.voiceime.online.SogouSuggestions
 import com.voiceime.ui.CandidateBar
 import com.voiceime.ui.ClipboardPanelView
 import com.voiceime.ui.SettingsPanelView
 import com.voiceime.ui.T9KeyboardView
 import com.voiceime.ui.VoiceKeyboardView
+import androidx.core.content.FileProvider
 import com.voiceime.ui.dp
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * VoiceIME input method.
@@ -101,7 +106,7 @@ class VoiceImeService : InputMethodService() {
     private val tapTimeout = Runnable { finalizeTap() }
 
     // Online suggestions: debounced, 300ms drop deadline, never blocks typing.
-    private val online = GoogleSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
+    private val online = SogouSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
     private var lastLocal = CandidateResult("", emptyList())
     // Index into lastLocal.segmentations; 0 = the reading behind the top word.
     private var segIndex = 0
@@ -256,6 +261,7 @@ class VoiceImeService : InputMethodService() {
         settingsPanel = SettingsPanelView(this).apply {
             visibility = View.GONE
             onHeightChange = { dpValue -> applyKeyboardHeight(dpValue) }
+            onExportLearned = { exportLearned() }
             onClose = { closeSettingsPanel() }
         }
         root.addView(settingsPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
@@ -769,6 +775,45 @@ class VoiceImeService : InputMethodService() {
         settingsPanel.setHeightDp(dpValue)
         keyboard.requestLayout()
     }
+
+    /** Export learned words as CSV and open the share sheet. The file lives
+     *  in the app's external files dir; sharing goes through FileProvider. */
+    private fun exportLearned() {
+        val words = candidateProvider?.learnedWords().orEmpty()
+        if (words.isEmpty()) {
+            Toast.makeText(this, getString(R.string.settings_export_empty), Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+            val file = File(getExternalFilesDir(null), "voiceime-learned-words-$stamp.csv")
+            file.bufferedWriter(Charsets.UTF_8).use { w ->
+                w.write("word,count,last_used\n")
+                for (lw in words) {
+                    val date = if (lw.lastUsed > 0L) {
+                        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date(lw.lastUsed))
+                    } else ""
+                    w.write("${csvEscape(lw.word)},${lw.count},$date\n")
+                }
+            }
+            val uri = FileProvider.getUriForFile(this, "com.voiceime.fileprovider", file)
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(share, getString(R.string.settings_export_share))
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(chooser)
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.settings_export_failed), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun csvEscape(s: String): String =
+        if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+            "\"" + s.replace("\"", "\"\"") + "\""
+        } else s
 
     // ---- key dispatch -------------------------------------------------------
 

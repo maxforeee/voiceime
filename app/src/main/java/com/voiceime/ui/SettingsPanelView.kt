@@ -14,6 +14,7 @@ import com.voiceime.R
 class SettingsPanelView(context: Context) : LinearLayout(context) {
 
     var onHeightChange: ((Float) -> Unit)? = null
+    var onExportLearned: (() -> Unit)? = null
     var onClose: (() -> Unit)? = null
 
     private var heightDp = 62f
@@ -65,6 +66,24 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(8f), context.dp(8f), context.dp(4f))
+        })
+
+        val exportRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(context.getColor(R.color.key_bg))
+            setPadding(context.dp(14f), context.dp(12f), context.dp(14f), context.dp(12f))
+        }
+        val exportLabel = TextView(context).apply {
+            text = context.getString(R.string.settings_export)
+            textSize = 16f
+            setTextColor(context.getColor(R.color.key_text))
+        }
+        exportRow.addView(exportLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        exportRow.addView(actionButton(context.getString(R.string.settings_export_btn)) { onExportLearned?.invoke() },
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        addView(exportRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
     }
 

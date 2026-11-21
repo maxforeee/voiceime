@@ -3,6 +3,9 @@ package com.voiceime
 /** One candidate word shown in the candidate bar. */
 data class Candidate(val word: String, val pinyin: String = "")
 
+/** One word the user has picked, with how often and when last used. */
+data class LearnedWord(val word: String, val count: Int, val lastUsed: Long)
+
 /**
  * Local lookup result for a T9 digit string. [segmentations] is the ranked
  * list of space-joined pinyin readings, best-word score first; [pinyin] is
@@ -21,6 +24,9 @@ data class CandidateResult(
 interface CandidateProvider {
     fun lookup(digits: String): CandidateResult
     fun rememberTap(word: String) {}
+
+    /** All learned words, most-used first, for the Settings export. */
+    fun learnedWords(): List<LearnedWord> = emptyList()
 
     /** Candidates restricted to one chosen segmentation (space-joined pinyin). */
     fun lookupFor(digits: String, segmentation: String): CandidateResult = lookup(digits)

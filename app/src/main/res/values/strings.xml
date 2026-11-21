@@ -29,4 +29,9 @@
     <string name="settings_desc">设置</string>
     <string name="settings_title">设置</string>
     <string name="settings_height">键盘高度</string>
+    <string name="settings_export">导出词库</string>
+    <string name="settings_export_btn">导出</string>
+    <string name="settings_export_empty">暂无学习记录可导出</string>
+    <string name="settings_export_failed">导出失败</string>
+    <string name="settings_export_share">分享词库文件</string>
 </resources>

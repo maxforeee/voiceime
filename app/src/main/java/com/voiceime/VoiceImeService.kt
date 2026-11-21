@@ -213,6 +213,7 @@ class VoiceImeService : InputMethodService() {
 
         keyboard = T9KeyboardView(this)
         keyboard.onKey = { k -> onKey(k) }
+        keyboard.onDeleteLongPress = { onDeleteLongPress() }
         // Gboard-style fixed height: all three panels share the typing
         // keyboard's formula height, so switching panels never changes the
         // window height; panels scroll internally.
@@ -825,6 +826,22 @@ class VoiceImeService : InputMethodService() {
             return
         }
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+    }
+
+    /** Long-press delete: erase the current sentence, back to the previous
+     *  period (Chinese 。 or English .). While pinyin is uncommitted, behave
+     *  like a normal tap so committed text is never touched by accident. */
+    private fun onDeleteLongPress() {
+        if (tapLetter != null || digits.isNotEmpty()) {
+            onDelete()
+            return
+        }
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(1000, 0)?.toString().orEmpty()
+        if (before.isEmpty()) return
+        val idx = before.indexOfLast { it == '。' || it == '.' }
+        val count = if (idx < 0) before.length else before.length - idx - 1
+        if (count > 0) ic.deleteSurroundingText(count, 0)
     }
 
     private fun onSpace() {

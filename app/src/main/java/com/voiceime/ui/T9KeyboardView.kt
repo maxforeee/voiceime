@@ -9,9 +9,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
-import android.view.View
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.TextView
 import com.voiceime.R
 
@@ -26,6 +24,7 @@ import com.voiceime.R
 class T9KeyboardView(context: Context) : LinearLayout(context) {
 
     var onKey: ((String) -> Unit)? = null
+    var onDeleteLongPress: (() -> Unit)? = null
 
     // Visible key height. The row pitch adds the vertical gap (top + bottom
     // key margins), so the panel height is rows x (keyHeight + keyGap).
@@ -36,7 +35,6 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     private val gap = context.dp(4f)
     private val keyGap = gap * 2
     private val rowPitch: Int get() = keyHeight + keyGap
-    private var keyPreview: PopupWindow? = null
 
     /** Fixed height shared by all panels: rows x (keyHeight + keyGap) plus
      *  vertical padding. The 6 symbol rows fit it because
@@ -87,7 +85,6 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     fun showMain(zh: Boolean) {
-        dismissKeyPreview()
         removeAllViews()
         showingSymbols = false
         showingZh = zh
@@ -115,7 +112,6 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     fun showSymbols() {
-        dismissKeyPreview()
         removeAllViews()
         showingSymbols = true
         row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"), height = symbolKeyHeight)
@@ -173,53 +169,37 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         tv.background = keyBackground(context, function)
         tv.isClickable = true
         tv.isHapticFeedbackEnabled = true
+        // Press effect: the key shrinks slightly while held and springs back
+        // on release. No popup preview (removed at the user's request).
         // Returning false keeps the TextView's own press/click handling intact.
+        var longPressed = false
         tv.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    showKeyPreview(v as TextView)
+                    v.scaleX = 0.95f
+                    v.scaleY = 0.95f
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> dismissKeyPreview()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.scaleX = 1f
+                    v.scaleY = 1f
+                }
             }
             false
         }
-        tv.setOnClickListener { onKey?.invoke(code) }
+        if (code == "del") {
+            tv.setOnLongClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onDeleteLongPress?.invoke()
+                longPressed = true
+                true
+            }
+        }
+        tv.setOnClickListener {
+            // A long-press already handled this tap; skip the extra delete.
+            if (longPressed) longPressed = false else onKey?.invoke(code)
+        }
         return tv
     }
 
-    /** Enlarged copy of the pressed key, floating just above it (Gboard-style). */
-    private fun showKeyPreview(key: TextView) {
-        dismissKeyPreview()
-        val content = TextView(context).apply {
-            gravity = Gravity.CENTER
-            text = key.text.toString().substringBefore('\n')
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
-            setTextColor(context.getColor(R.color.key_text))
-            background = keyBackground(context, false)
-            minWidth = key.width
-            val padH = context.dp(8f)
-            val padV = context.dp(10f)
-            setPadding(padH, padV, padH, padV)
-        }
-        val popup = PopupWindow(content, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-        // Let previews on the top row extend above the keyboard window.
-        popup.isClippingEnabled = false
-        popup.isTouchable = false
-        content.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val loc = IntArray(2)
-        key.getLocationInWindow(loc)
-        val x = loc[0] + (key.width - content.measuredWidth) / 2
-        val y = loc[1] - content.measuredHeight
-        popup.showAtLocation(key, Gravity.NO_GRAVITY, x, y)
-        keyPreview = popup
-    }
-
-    private fun dismissKeyPreview() {
-        keyPreview?.dismiss()
-        keyPreview = null
-    }
 }

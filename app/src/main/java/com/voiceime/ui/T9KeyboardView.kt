@@ -29,8 +29,10 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
 
     // Visible key height. The row pitch adds the vertical gap (top + bottom
     // key margins), so the panel height is rows x (keyHeight + keyGap).
-    private val keyHeight: Int
-    private val symbolKeyHeight: Int
+    private var keyHeight: Int
+    private var symbolKeyHeight: Int
+    private var showingSymbols = false
+    private var showingZh = true
     private val gap = context.dp(4f)
     private val keyGap = gap * 2
     private val rowPitch: Int get() = keyHeight + keyGap
@@ -42,6 +44,29 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     val panelHeightPx: Int
         get() = paddingTop + paddingBottom + 5 * rowPitch
 
+    companion object {
+        private const val PREFS = "voiceime_prefs"
+        private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
+        const val MIN_ROW_PITCH_DP = 52f
+        const val MAX_ROW_PITCH_DP = 72f
+    }
+
+    /** Current row pitch in dp, for the Settings panel label. */
+    fun currentRowPitchDp(): Float =
+        rowPitch / resources.displayMetrics.density
+
+    /** Apply a new row pitch from Settings: persist, rebuild the current
+     *  page with the new height. Panel height follows the formula, so the
+     *  service re-reads panelHeightPx after calling this. */
+    fun setRowPitchDp(dpValue: Float) {
+        val clamped = dpValue.coerceIn(MIN_ROW_PITCH_DP, MAX_ROW_PITCH_DP)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putFloat(KEY_ROW_PITCH_DP, clamped).apply()
+        keyHeight = context.dp(clamped) - keyGap
+        symbolKeyHeight = rowPitch * 5 / 6
+        if (showingSymbols) showSymbols() else showMain(showingZh)
+    }
+
     init {
         orientation = VERTICAL
         setBackgroundColor(context.getColor(R.color.keyboard_bg))
@@ -50,8 +75,13 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         val landscape = dm.widthPixels > dm.heightPixels
         // Auto height: scale row pitch with the screen, clamped to sane
         // touch sizes; the visible key takes the pitch minus the gap.
+        // A height saved in Settings overrides the auto value.
         val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
-        keyHeight = target.toInt().coerceIn(context.dp(42f), context.dp(62f)) - keyGap
+        val autoPitch = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
+        val savedPitch = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getFloat(KEY_ROW_PITCH_DP, -1f)
+        val pitch = if (savedPitch > 0f) context.dp(savedPitch) else autoPitch
+        keyHeight = pitch - keyGap
         // 6 symbol rows must never exceed the 5-row main page's total height.
         symbolKeyHeight = rowPitch * 5 / 6
     }
@@ -59,6 +89,8 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     fun showMain(zh: Boolean) {
         dismissKeyPreview()
         removeAllViews()
+        showingSymbols = false
+        showingZh = zh
         val sub1 = if (zh) "，" else null
         row(
             digitKey("1", sub1), digitKey("2", "ABC"), digitKey("3", "DEF")
@@ -85,6 +117,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     fun showSymbols() {
         dismissKeyPreview()
         removeAllViews()
+        showingSymbols = true
         row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"), height = symbolKeyHeight)
         row(textKey("4", "4"), textKey("5", "5"), textKey("6", "6"), height = symbolKeyHeight)
         row(textKey("7", "7"), textKey("8", "8"), textKey("9", "9"), height = symbolKeyHeight)

@@ -33,6 +33,7 @@ import com.voiceime.lexicon.Lexicon
 import com.voiceime.online.GoogleSuggestions
 import com.voiceime.ui.CandidateBar
 import com.voiceime.ui.ClipboardPanelView
+import com.voiceime.ui.SettingsPanelView
 import com.voiceime.ui.T9KeyboardView
 import com.voiceime.ui.VoiceKeyboardView
 import com.voiceime.ui.dp
@@ -65,6 +66,7 @@ class VoiceImeService : InputMethodService() {
     private lateinit var keyboard: T9KeyboardView
     private lateinit var voiceView: VoiceKeyboardView
     private lateinit var clipboardPanel: ClipboardPanelView
+    private lateinit var settingsPanel: SettingsPanelView
     private lateinit var toggleBtn: ImageButton
 
     private val digits = StringBuilder()
@@ -194,6 +196,13 @@ class VoiceImeService : InputMethodService() {
             contentDescription = getString(R.string.toggle_desc)
             setOnClickListener { onToggle() }
         }
+        val settingsBtn = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_settings)
+            background = null
+            contentDescription = getString(R.string.settings_desc)
+            setOnClickListener { toggleSettingsPanel() }
+        }
+        topBar.addView(settingsBtn, LinearLayout.LayoutParams(dp(40f), LinearLayout.LayoutParams.MATCH_PARENT))
         topBar.addView(candidateBar, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
         topBar.addView(clipboardBtn, LinearLayout.LayoutParams(dp(36f), LinearLayout.LayoutParams.MATCH_PARENT))
         topBar.addView(toggleBtn, LinearLayout.LayoutParams(dp(40f), LinearLayout.LayoutParams.MATCH_PARENT))
@@ -242,6 +251,14 @@ class VoiceImeService : InputMethodService() {
             onClose = { closeClipboardPanel() }
         }
         root.addView(clipboardPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
+
+        settingsPanel = SettingsPanelView(this).apply {
+            visibility = View.GONE
+            onHeightChange = { dpValue -> applyKeyboardHeight(dpValue) }
+            onClose = { closeSettingsPanel() }
+        }
+        root.addView(settingsPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
+        settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
 
         return root
     }
@@ -685,7 +702,7 @@ class VoiceImeService : InputMethodService() {
     // ---- clipboard panel ------------------------------------------------------
 
     private fun toggleClipboardPanel() {
-        if (panelOpen) closeClipboardPanel() else openClipboardPanel()
+        if (panelOpen) closePanels() else openClipboardPanel()
     }
 
     private fun openClipboardPanel() {
@@ -694,13 +711,42 @@ class VoiceImeService : InputMethodService() {
         panelOpen = true
         keyboard.visibility = View.GONE
         voiceView.visibility = View.GONE
+        settingsPanel.visibility = View.GONE
         clipboardPanel.visibility = View.VISIBLE
         clipboardPanel.render(clipboardHistory.all())
     }
 
     private fun closeClipboardPanel() {
+        closePanels()
+    }
+
+    // ---- settings panel -------------------------------------------------------
+
+    private fun toggleSettingsPanel() {
+        if (panelOpen) closePanels() else openSettingsPanel()
+    }
+
+    private fun openSettingsPanel() {
+        flushBuffer()
+        stopVoiceSession(salvage = true)
+        panelOpen = true
+        keyboard.visibility = View.GONE
+        voiceView.visibility = View.GONE
+        clipboardPanel.visibility = View.GONE
+        settingsPanel.visibility = View.VISIBLE
+        settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
+    }
+
+    private fun closeSettingsPanel() {
+        closePanels()
+    }
+
+    /** One overlay panel open at a time; closes whichever is showing and
+     *  restores the current mode's view. */
+    private fun closePanels() {
         panelOpen = false
         clipboardPanel.visibility = View.GONE
+        settingsPanel.visibility = View.GONE
         if (mode == Mode.VOICE) {
             voiceView.visibility = View.VISIBLE
             resetVoiceUi()
@@ -708,6 +754,19 @@ class VoiceImeService : InputMethodService() {
             keyboard.visibility = View.VISIBLE
             resetInput()
         }
+    }
+
+    /** Keyboard height tool: rebuild the keyboard at the new pitch, then
+     *  resize every panel to the new formula height. */
+    private fun applyKeyboardHeight(dpValue: Float) {
+        keyboard.setRowPitchDp(dpValue)
+        val h = keyboard.panelHeightPx
+        keyboard.layoutParams.height = h
+        voiceView.layoutParams.height = h
+        clipboardPanel.layoutParams.height = h
+        settingsPanel.layoutParams.height = h
+        settingsPanel.setHeightDp(dpValue)
+        keyboard.requestLayout()
     }
 
     // ---- key dispatch -------------------------------------------------------

@@ -26,4 +26,7 @@
     <string name="clipboard_clear">清空</string>
     <string name="clipboard_close">关闭</string>
     <string name="clipboard_empty">暂无复制内容</string>
+    <string name="settings_desc">设置</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_height">键盘高度</string>
 </resources>

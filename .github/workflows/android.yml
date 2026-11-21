@@ -50,3 +50,28 @@ jobs:
           name: voiceime-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Decode release keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/voiceime-release.keystore
+          test -s /tmp/voiceime-release.keystore
+
+      - name: Build release APK
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          DOUBAO_API_KEY_FROM_CONFIG: ${{ secrets.DOUBAO_API_KEY_FROM_CONFIG }}
+          VOICEIME_CORRECT_TOKEN: ${{ secrets.VOICEIME_CORRECT_TOKEN }}
+          KEYSTORE_PATH: /tmp/voiceime-release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: voiceime
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload release APK
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: voiceime-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

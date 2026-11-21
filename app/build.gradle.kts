@@ -35,9 +35,29 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        create("release") {
+            // Release signing credentials come from the environment only
+            // (CI decodes them from the ANDROID_KEYSTORE_BASE64 secret).
+            // They must never be hardcoded, logged, or committed.
+            val ksPath = System.getenv("KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Only sign when a keystore is provided (CI release job);
+            // without one the release APK builds unsigned.
+            if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

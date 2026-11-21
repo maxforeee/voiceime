@@ -136,7 +136,11 @@ class CloudLexicon(
                     failCount++
                     continue
                 }
-                val file = download(entry) ?: run { failCount++; continue }
+                val file = download(entry)
+                if (file == null) {
+                    failCount++
+                    continue
+                }
                 try {
                     parseIntoDb(db, entry, file, builtInPairs, builtInEn)
                     okCount++

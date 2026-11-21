@@ -301,7 +301,10 @@ class VoiceImeService : InputMethodService() {
         if (mode == Mode.VOICE) {
             resetVoiceUi()
         } else if (::keyboard.isInitialized) {
-            if (numericField && lang == Lang.EN) keyboard.showMain(true)
+            if (numericField && lang == Lang.EN) {
+                keyboard.showMain(true)
+                resizeKeyboardToPage()
+            }
         }
     }
 
@@ -327,6 +330,7 @@ class VoiceImeService : InputMethodService() {
         symbolsPage = false
         if (::keyboard.isInitialized) {
             keyboard.showMainForLang(lang == Lang.ZH)
+            resizeKeyboardToPage()
             refreshCandidates()
         }
     }
@@ -951,12 +955,21 @@ class VoiceImeService : InputMethodService() {
         }
     }
 
+    /** Resize the keyboard view to the height of the page it is showing
+     *  (the 4-row QWERTY page is shorter than the 5-row T9 page). Call
+     *  after every page switch, or the window keeps the old height. */
+    private fun resizeKeyboardToPage() {
+        if (!::keyboard.isInitialized) return
+        keyboard.layoutParams.height = keyboard.currentPanelHeightPx
+        keyboard.requestLayout()
+    }
+
     /** Keyboard height tool: rebuild the keyboard at the new pitch, then
      *  resize every panel to the new formula height. */
     private fun applyKeyboardHeight(dpValue: Float) {
         keyboard.setRowPitchDp(dpValue)
         val h = keyboard.panelHeightPx
-        keyboard.layoutParams.height = h
+        keyboard.layoutParams.height = keyboard.currentPanelHeightPx
         voiceView.layoutParams.height = h
         clipboardPanel.layoutParams.height = h
         settingsPanel.layoutParams.height = h
@@ -1059,15 +1072,18 @@ class VoiceImeService : InputMethodService() {
                 flushBuffer()
                 lang = if (lang == Lang.ZH) Lang.EN else Lang.ZH
                 keyboard.showMainForLang(lang == Lang.ZH)
+                resizeKeyboardToPage()
             }
             key == "sym" -> {
                 flushBuffer()
                 symbolsPage = true
                 keyboard.showSymbols()
+                resizeKeyboardToPage()
             }
             key == "back" -> {
                 symbolsPage = false
                 keyboard.showMainForLang(lang == Lang.ZH)
+                resizeKeyboardToPage()
             }
             symbolsPage -> {
                 flushBuffer()

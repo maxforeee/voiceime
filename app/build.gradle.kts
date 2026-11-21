@@ -11,8 +11,8 @@ android {
         applicationId = "com.voiceime"
         minSdk = 28
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.2.2"
+        versionCode = 6
+        versionName = "1.2.3"
 
         // Offline voice (Sherpa-ONNX) ships arm64 native libs only: the AAR
         // carries all four ABIs (~110 MB); the user's phone is arm64.

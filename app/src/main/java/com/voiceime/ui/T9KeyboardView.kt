@@ -45,17 +45,35 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     private val keyGap = gap * 2
     private val rowPitch: Int get() = keyHeight + keyGap
 
-    /** Fixed height shared by all panels: rows x (keyHeight + keyGap) plus
+    /** Fixed height of the 5-row T9 page, shared by the symbol / voice /
+     *  clipboard / settings panels: rows x (keyHeight + keyGap) plus
      *  vertical padding. The 6 symbol rows fit it because
      *  symbolKeyHeight = rowPitch * 5 / 6. */
     val panelHeightPx: Int
         get() = paddingTop + paddingBottom + 5 * rowPitch
+
+    /** Visible height of one QWERTY key: the old QWERTY key (5/4 of a T9
+     *  row pitch, minus the gap) scaled by QWERTY_KEY_SCALE. The vertical
+     *  gap stays the same 8dp as the T9 keys. */
+    private val qwertyKeyHeight: Int
+        get() = ((5 * rowPitch / 4 - keyGap) * QWERTY_KEY_SCALE).toInt()
+    private val qwertyRowPitch: Int get() = qwertyKeyHeight + keyGap
+
+    /** Height of the page currently shown: the 4-row QWERTY page is
+     *  shorter than the 5-row T9 page (4 x qwertyRowPitch vs 5 x
+     *  rowPitch); symbols keep the 5-row height. */
+    val currentPanelHeightPx: Int
+        get() = paddingTop + paddingBottom +
+            if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
 
     companion object {
         private const val PREFS = "voiceime_prefs"
         private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
         const val MIN_ROW_PITCH_DP = 52f
         const val MAX_ROW_PITCH_DP = 72f
+        /** QWERTY keys are 0.68x as tall as the old QWERTY keys (93px vs
+         *  137px on the same phone), matching the reference keyboard. */
+        private const val QWERTY_KEY_SCALE = 0.68f
     }
 
     /** Current row pitch in dp, for the Settings panel label. */
@@ -144,9 +162,11 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         )
     }
 
-    /** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows
-     *  fill the same panel height: each row is (panel - padding) / 4.
-     *  Gboard layout: 10 / 9 / 7 letters, then the bottom row. Shift opens
+    /** Full 26-key QWERTY for English (Chinese stays 9-key). Four shorter
+     *  rows: each key is QWERTY_KEY_SCALE as tall as the old QWERTY key,
+     *  so the whole panel is ~0.68x as tall and the window shrinks with it
+     *  (see currentPanelHeightPx). Gboard layout: 10 / 9 / 7 letters, then
+     *  the bottom row. Shift opens
      *  the z row and delete closes it, both about two letter keys wide so
      *  the row is not cramped; the bottom row is lang / symbol / space /
      *  enter with uniform non-space widths. */
@@ -155,7 +175,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         showingSymbols = false
         showingQwerty = true
         val upper = qwertyShift || qwertyCaps
-        val h = (panelHeightPx - paddingTop - paddingBottom) / 4
+        val h = qwertyRowPitch
         fun letter(ch: Char): TextView {
             val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
             return textKey(s, s)

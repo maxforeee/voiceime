@@ -58,11 +58,20 @@ private val gapPx: Int
 get() = (context.dp(4f) * scale).toInt().coerceAtLeast(context.dp(2f))
 private val keyGap: Int get() = gapPx * 2
 
-/** QWERTY-only vertical key gap: 6dp at reference pitch, scaled with it.
-* Wider than the shared 4dp gap, so the letter keys sit shorter with more
-* air between rows. Horizontal gap stays the shared gapPx. */
+/** QWERTY key height: natural size, 0.80 x rowPitch (the v1.2.5 / Qwen
+* tier) -- NOT stretched to fill the row. The panel total stays the
+* 5-row T9 height; the leftover vertical space is air. */
+private val qwertyKeyHeightPx: Int
+    get() = (rowPitch * QWERTY_KEY_HEIGHT_FACTOR).toInt()
+
+/** QWERTY vertical gap: one of five equal vertical whitespaces on the
+* English page (top edge, three between rows, bottom edge). The formula
+* counts the view's own top/bottom padding, so top edge + top gap view,
+* each between-rows gap view, and bottom edge + bottom gap view are all
+* the same size. Horizontal gaps stay the shared gapPx: left edge,
+* between keys and right edge are all 2 x gapPx. */
 private val qwertyVGapPx: Int
-    get() = (context.dp(6f) * scale).toInt().coerceAtLeast(context.dp(3f))
+    get() = (4 * qwertyRowPitch - 4 * qwertyKeyHeightPx + paddingTop + paddingBottom) / 5
 
 // Visible key height. The row pitch adds the vertical gap (top + bottom
 // key margins), so the panel height is rows x (keyHeight + keyGap).
@@ -85,16 +94,16 @@ val panelHeightPx: Int
 get() = paddingTop + paddingBottom + 5 * rowPitch
 
 /** QWERTY row pitch: the 4 English rows share the 5-row T9 panel
-* height, scaled by QWERTY_HEIGHT_FACTOR (0.88) so the English page
-* sits a little shorter than the T9 page at the same Settings height
-* -- the middle between v1.2.5 (too short) and v1.2.6 (as tall as T9,
-* too tall). The vertical gap is wider than the T9 gap (see
-* qwertyVGapPx), so the letter keys sit shorter with more air. */
-private val qwertyRowPitch: Int get() = (5 * rowPitch * QWERTY_HEIGHT_FACTOR / 4).toInt()
+* height, so both pages are exactly as tall at the same Settings
+* height (5 x rowPitch spread over 4 rows). The keys do NOT stretch
+* to fill the row: they keep their natural height (see
+* qwertyKeyHeightPx) and sit at their natural height, the leftover split into five
+* equal vertical gaps (see qwertyVGapPx) */
+private val qwertyRowPitch: Int get() = (5 * rowPitch) / 4
 
-/** Height of the page currently shown: QWERTY is a little shorter
-* than the 5-row T9 page (4 x qwertyRowPitch < 5 x rowPitch); symbols
-* keep the 5-row height. */
+/** Height of the page currently shown: QWERTY and T9 pages are the
+* same height (4 x qwertyRowPitch == 5 x rowPitch); symbols keep the
+* 5-row height. */
 val currentPanelHeightPx: Int
 get() = paddingTop + paddingBottom +
 if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
@@ -107,9 +116,10 @@ const val MAX_ROW_PITCH_DP = 72f
 /** Reference pitch: every size below is defined at 62dp and scaled
 * from it, so the keyboard keeps its proportions at any setting. */
 private const val BASE_ROW_PITCH_DP = 62f
-    /** QWERTY total-height factor vs the T9 panel: 1.0 = as tall as T9
-    * (v1.2.6, too tall), ~0.80 = v1.2.5 (too short); 0.88 is the middle. */
-    private const val QWERTY_HEIGHT_FACTOR = 0.88f
+    /** QWERTY key-height factor: natural key height is 0.80 x rowPitch
+    * (the v1.2.5 / Qwen tier). The panel total is NOT scaled -- it stays
+    * the full 5-row T9 height; the leftover is vertical air. */
+    private const val QWERTY_KEY_HEIGHT_FACTOR = 0.80f
 }
 
 /** Current row pitch in dp, for the Settings panel label. */
@@ -164,12 +174,12 @@ row(
 digitKey("7", "PQRS"), digitKey("8", "TUV"), digitKey("9", "WXYZ")
 )
 row(
-textKey(if (zh) "中/英" else "英/中", "lang", function = true),
+textKey("符号", "sym", function = true),
 digitKey("0", null),
 textKey("⌫", "del", function = true)
 )
 row(
-textKey("符号", "sym", function = true),
+textKey(if (zh) "中/英" else "英/中", "lang", function = true),
 textKey("空格", "space"),
 textKey("回车", "enter", function = true),
 weights = floatArrayOf(1f, 2f, 1f)
@@ -222,34 +232,44 @@ removeAllViews()
 showingSymbols = false
 showingQwerty = true
 val upper = qwertyShift || qwertyCaps
-val h = qwertyRowPitch
+// Natural key height; the leftover vertical space is split into five
+// equal gaps (top edge, between rows, bottom edge), each counting the
+// view's own top/bottom padding, so every vertical whitespace on this
+// page is the same size. Keys are not stretched to fill the panel.
+val h = qwertyKeyHeightPx
+val g = qwertyVGapPx
 fun letter(ch: Char): TextView {
 val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
 return textKey(s, s)
 }
-row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h, vGap = qwertyVGapPx)
+addView(vGapView(g - paddingTop))
+row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h, vGap = 0)
+addView(vGapView(g))
 row(
 spacer(),
 *"asdfghjkl".map { letter(it)}.toTypedArray(),
 spacer(),
-height = h, vGap = qwertyVGapPx,
+height = h, vGap = 0,
 weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
 )
+addView(vGapView(g))
 row(
 textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
 *"zxcvbnm".map { letter(it)}.toTypedArray(),
 textKey("\u232B", "del", function = true),
-height = h, vGap = qwertyVGapPx,
-weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
+height = h, vGap = 0,
+weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
 )
+addView(vGapView(g))
 row(
 textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
 textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
 textKey("\u7A7A\u683C", "space"),
 textKey("\u56DE\u8F66", "enter", function = true),
-height = h, vGap = qwertyVGapPx,
+height = h, vGap = 0,
 weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
 )
+addView(vGapView(g - paddingBottom))
 }
 
 /** Shift: one tap = one-shot uppercase, second quick tap = caps lock,
@@ -274,6 +294,10 @@ if (showingQwerty) showQwerty()
 }
 
 /** Invisible spacer: takes width in a row without drawing anything. */
+/** Empty vertical gap view: one of the five equal QWERTY gaps. */
+private fun vGapView(height: Int): View =
+View(context).apply { layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, height) }
+
 private fun spacer(): TextView =
 TextView(context).apply { visibility = View.INVISIBLE}
 

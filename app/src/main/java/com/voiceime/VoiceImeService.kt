@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -148,6 +149,16 @@ class VoiceImeService : InputMethodService() {
         finishVoiceSession()
     }
 
+    // Voice modify mode: the spoken text is an instruction for the backend,
+    // never committed to the screen. Only the modified result replaces the
+    // field content; on any failure the original stays untouched.
+    private var modifyMode = false
+    private var modifyPending = false
+    private val modifyTimeout = Runnable {
+        modifyPending = false
+        finishVoiceSession()
+    }
+
     // Live-text popup: a separate window above the keyboard, so the fixed
     // panel heights are never affected. It owns text display while recording.
     private var voicePopup: PopupWindow? = null
@@ -245,9 +256,7 @@ class VoiceImeService : InputMethodService() {
                 }
             }
             onBackToKeyboard = { switchToKeyboard() }
-            onModifyClick = {
-                Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_soon), Toast.LENGTH_SHORT).show()
-            }
+            onModifyClick = { enterModifyMode() }
         }
         root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
@@ -361,6 +370,8 @@ class VoiceImeService : InputMethodService() {
         voiceView.setInterim("")
         voiceView.recording = false
         voiceView.holdMode = false
+        modifyMode = false
+        modifyPending = false
         if (BuildConfig.DOUBAO_API_KEY.isEmpty()) {
             voiceView.micEnabled = false
             voiceView.setStatus(getString(R.string.voice_not_configured), isError = true)
@@ -368,6 +379,65 @@ class VoiceImeService : InputMethodService() {
             voiceView.micEnabled = true
             voiceView.setStatus(getString(R.string.voice_hint_idle))
         }
+    }
+
+    /** "修改" entry: the big mic button lights up and records, but what is
+     * said is an instruction for the backend, not text to commit. */
+    private fun enterModifyMode() {
+        if (voiceState != VoiceState.IDLE) return
+        if (readFieldText().isNullOrBlank()) {
+            Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_empty), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!networkAvailable()) {
+            Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_offline), Toast.LENGTH_SHORT).show()
+            return
+        }
+        modifyMode = true
+        startRecording(hold = false)
+    }
+
+    /** Full text of the current input field, or null if the app won't share it. */
+    private fun readFieldText(): String? {
+        val ic = currentInputConnection ?: return null
+        val extracted = try {
+            ic.getExtractedText(ExtractedTextRequest(), 0)
+        } catch (e: Exception) {
+            null
+        }
+        extracted?.text?.let { return it.toString() }
+        val before = ic.getTextBeforeCursor(100000, 0) ?: ""
+        val after = ic.getTextAfterCursor(100000, 0) ?: ""
+        return before.toString() + after.toString()
+    }
+
+    /** Replace the whole field content; false if the app won't allow it. */
+    private fun replaceFieldText(newText: String): Boolean {
+        val ic = currentInputConnection ?: return false
+        val extracted = try {
+            ic.getExtractedText(ExtractedTextRequest(), 0)
+        } catch (e: Exception) {
+            null
+        }
+        val beforeLen: Int
+        val afterLen: Int
+        if (extracted?.text != null) {
+            beforeLen = extracted.selectionStart.coerceAtLeast(0)
+            afterLen = (extracted.text.length - extracted.selectionEnd).coerceAtLeast(0)
+        } else {
+            beforeLen = ic.getTextBeforeCursor(100000, 0)?.length ?: return false
+            afterLen = ic.getTextAfterCursor(100000, 0)?.length ?: 0
+        }
+        ic.beginBatchEdit()
+        val ok = try {
+            ic.deleteSurroundingText(beforeLen, afterLen)
+            ic.commitText(newText, 1)
+            true
+        } catch (e: Exception) {
+            false
+        }
+        ic.endBatchEdit()
+        return ok
     }
 
     // ---- voice session -------------------------------------------------------
@@ -382,6 +452,7 @@ class VoiceImeService : InputMethodService() {
             != PackageManager.PERMISSION_GRANTED
         ) {
             voiceView.setStatus(getString(R.string.voice_need_permission), isError = true)
+            modifyMode = false
             try {
                 startActivity(
                     Intent(this, PermissionActivity::class.java)
@@ -475,7 +546,8 @@ class VoiceImeService : InputMethodService() {
         if (!cap.start()) return  // onError already scheduled failSession
         voiceView.setStatus(
             getString(
-                if (voiceState == VoiceState.RECORDING_HOLD) R.string.voice_listening_hold
+                if (modifyMode) R.string.voice_edit_hint
+                else if (voiceState == VoiceState.RECORDING_HOLD) R.string.voice_listening_hold
                 else R.string.voice_listening_tap
             )
         )
@@ -522,6 +594,26 @@ class VoiceImeService : InputMethodService() {
         capture = null
         setPopupText(text)
         setPopupCorrecting(true)
+        if (modifyMode) {
+            voiceView.setStatus(getString(R.string.voice_editing))
+            if (text.isEmpty()) {
+                finishVoiceSession()
+                return
+            }
+            val original = readFieldText()
+            if (original.isNullOrBlank()) {
+                finishVoiceSession()
+                return
+            }
+            val id = sessionId
+            modifyPending = true
+            handler.removeCallbacks(modifyTimeout)
+            handler.postDelayed(modifyTimeout, CORRECTION_TIMEOUT_MS)
+            corrector.modify(original, text) { modified ->
+                handler.post { if (id == sessionId) onModifyDone(original, modified) }
+            }
+            return
+        }
         voiceView.setStatus(getString(R.string.voice_correcting))
         if (text.isEmpty()) {
             finishVoiceSession()
@@ -541,6 +633,12 @@ class VoiceImeService : InputMethodService() {
 
     /** Offline decode finished: raw text goes straight on screen, no correction. */
     private fun onOfflineFinal(text: String) {
+        // Modify needs the backend; offline the instruction is discarded and
+        // the original stays untouched.
+        if (modifyMode) {
+            finishVoiceSession()
+            return
+        }
         voiceState = VoiceState.PROCESSING
         voiceView.recording = false
         voiceView.micEnabled = false
@@ -562,9 +660,25 @@ class VoiceImeService : InputMethodService() {
         finishVoiceSession()
     }
 
+    /** Modify result: only the backend's text replaces the field; on any
+     * failure the original stays untouched and nothing is committed. */
+    private fun onModifyDone(original: String, modified: String?) {
+        handler.removeCallbacks(modifyTimeout)
+        modifyPending = false
+        if (modified != null && modified != original) {
+            if (replaceFieldText(modified)) {
+                setPopupText(modified)
+                committed = true
+            }
+        }
+        finishVoiceSession()
+    }
+
     /** Correction finished (or gave up): commit happened, back to idle. */
     private fun finishVoiceSession() {
         handler.removeCallbacks(correctionTimeout)
+        handler.removeCallbacks(modifyTimeout)
+        modifyPending = false
         pendingOriginal = null
         offlineMode = false
         offlineChunks.clear()
@@ -576,19 +690,28 @@ class VoiceImeService : InputMethodService() {
         voiceView.setInterim("")
         setPopupCorrecting(false)
         voiceView.setStatus(
-            getString(if (committed) R.string.voice_done else R.string.voice_hint_idle)
+            getString(
+                when {
+                    modifyMode && committed -> R.string.voice_edit_done
+                    committed -> R.string.voice_done
+                    else -> R.string.voice_hint_idle
+                }
+            )
         )
+        modifyMode = false
         // Let the final text stay readable for a moment before the popup goes.
         handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
     }
 
     private fun onAsrClosed() {
-        // Correction in flight owns the session; the close is expected after
-        // the final packet and must not tear down the pending commit.
-        if (pendingOriginal != null) return
+        // Correction / modify in flight owns the session; the close is
+        // expected after the final packet and must not tear down the pending
+        // commit. In modify mode the interim is an instruction, never text
+        // to salvage.
+        if (pendingOriginal != null || modifyPending) return
         handler.removeCallbacks(processingTimeout)
         // Connection dropped without a final packet: salvage the last interim.
-        if (asrClient?.gotFinal != true) commitOnce(lastInterim)
+        if (asrClient?.gotFinal != true && !modifyMode) commitOnce(lastInterim)
         cleanupSession()
         voiceState = VoiceState.IDLE
         voiceView.recording = false
@@ -602,8 +725,8 @@ class VoiceImeService : InputMethodService() {
 
     private fun failSession(message: String) {
         // Final text already received: a late ASR error must not discard it;
-        // the correction flow commits the original on its own failure.
-        if (pendingOriginal != null) return
+        // the correction / modify flow commits the original on its own failure.
+        if (pendingOriginal != null || modifyPending) return
         handler.removeCallbacks(processingTimeout)
         sessionId++
         capture?.stop()
@@ -612,6 +735,8 @@ class VoiceImeService : InputMethodService() {
         asrClient = null
         voiceState = VoiceState.IDLE
         offlineMode = false
+        modifyMode = false
+        modifyPending = false
         voiceView.recording = false
         voiceView.micEnabled = true
         // Keep what was heard visible in the popup for a moment; nothing is
@@ -624,9 +749,15 @@ class VoiceImeService : InputMethodService() {
     private fun stopVoiceSession(salvage: Boolean) {
         handler.removeCallbacks(processingTimeout)
         handler.removeCallbacks(correctionTimeout)
+        handler.removeCallbacks(modifyTimeout)
+        modifyPending = false
+        val wasModify = modifyMode
+        modifyMode = false
         val wasActive = asrClient != null || voiceState != VoiceState.IDLE
         // Correction in flight: the final text beats the last interim, and
         // the late correction callback is dropped by the sessionId bump.
+        // In modify mode nothing is salvaged: the interim is an instruction,
+        // not text to commit.
         val salvageText = pendingOriginal ?: lastInterim
         pendingOriginal = null
         offlineMode = false
@@ -635,7 +766,7 @@ class VoiceImeService : InputMethodService() {
         sessionId++
         capture?.stop()
         capture = null
-        if (salvage && wasActive && !committed && salvageText.isNotEmpty()) {
+        if (salvage && wasActive && !committed && !wasModify && salvageText.isNotEmpty()) {
             commitOnce(salvageText)
         }
         asrClient?.cancel()
@@ -654,6 +785,8 @@ class VoiceImeService : InputMethodService() {
         capture = null
         asrClient?.finish()
         asrClient = null
+        modifyMode = false
+        modifyPending = false
     }
 
     /** Final text is committed exactly once; interim text is never committed. */

@@ -17,7 +17,11 @@
     <string name="voice_timeout">识别超时，请重试</string>
     <string name="voice_back_keyboard">键盘</string>
     <string name="voice_edit">修改</string>
-    <string name="voice_edit_soon">修改功能稍后上线</string>
+    <string name="voice_edit_hint">请说出修改要求</string>
+    <string name="voice_edit_empty">输入框是空的，先输入文字再修改</string>
+    <string name="voice_edit_offline">没网时不能用修改，请联网后再试</string>
+    <string name="voice_editing">按要求修改中…</string>
+    <string name="voice_edit_done">已替换</string>
     <string name="voice_correcting">修正中…</string>
 
     <string name="clipboard_desc">剪贴板</string>

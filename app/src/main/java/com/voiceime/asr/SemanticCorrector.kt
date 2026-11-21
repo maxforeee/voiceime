@@ -13,10 +13,14 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Backend semantic correction of ASR final text (deepseek-flash on VPS).
- * POST {"text": ...} -> {"ok": true, "corrected": "..."}. The backend holds
- * the model key; the app sends no credentials. Any failure / timeout /
- * empty result yields null so the caller commits the original text instead.
+ * Backend calls (deepseek-flash on VPS) for the voice flow.
+ * - correct(): semantic correction of ASR final text.
+ * - modify(): apply a spoken instruction to the text already in the field.
+ * POST {"text": ...} -> {"ok": true, "corrected": "..."}.
+ * POST {"text": ..., "instruction": ...} -> {"ok": true, "modified": "..."}.
+ * The backend holds the model key; the app sends only the shared token
+ * (BuildConfig.CORRECT_TOKEN, from the repo secret). Any failure / timeout /
+ * empty result yields null so the caller keeps the original text instead.
  *
  * Like DoubaoAsrClient, callbacks fire on OkHttp's worker thread; the caller
  * must post to the main thread and guard against stale sessions.
@@ -41,11 +45,25 @@ class SemanticCorrector {
             return
         }
         val body = JSONObject().put("text", text).toString()
-            .toRequestBody(JSON_TYPE)
+        post(CORRECT_URL, body, "corrected", onResult)
+    }
+
+    /** onResult is invoked exactly once, with the modified text or null. */
+    fun modify(original: String, instruction: String, onResult: (modified: String?) -> Unit) {
+        cancel()
+        if (original.isEmpty() || instruction.isEmpty()) {
+            onResult(null)
+            return
+        }
+        val body = JSONObject().put("text", original).put("instruction", instruction).toString()
+        post(MODIFY_URL, body, "modified", onResult)
+    }
+
+    private fun post(url: String, bodyJson: String, resultKey: String, onResult: (String?) -> Unit) {
         val request = Request.Builder()
-            .url(CORRECT_URL)
+            .url(url)
             .header("X-Correct-Token", BuildConfig.CORRECT_TOKEN)
-            .post(body)
+            .post(bodyJson.toRequestBody(JSON_TYPE))
             .build()
         val call = client.newCall(request)
         pending = call
@@ -56,11 +74,11 @@ class SemanticCorrector {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val corrected = response.use { r ->
+                val out = response.use { r ->
                     if (!r.isSuccessful) return@use null
-                    parse(r.body?.string() ?: return@use null)
+                    parse(r.body?.string() ?: return@use null, resultKey)
                 }
-                onResult(corrected)
+                onResult(out)
             }
         })
     }
@@ -70,11 +88,11 @@ class SemanticCorrector {
         pending = null
     }
 
-    private fun parse(body: String): String? {
+    private fun parse(body: String, key: String): String? {
         return try {
             val obj = JSONObject(body)
             if (!obj.optBoolean("ok", false)) return null
-            obj.optString("corrected", "").trim().ifEmpty { null }
+            obj.optString(key, "").trim().ifEmpty { null }
         } catch (e: Exception) {
             null
         }
@@ -82,6 +100,7 @@ class SemanticCorrector {
 
     companion object {
         private const val CORRECT_URL = "https://toolseverything.com:442/voiceime-correct/correct"
+        private const val MODIFY_URL = "https://toolseverything.com:442/voiceime-correct/modify"
         private const val TIMEOUT_S = 15L
         private val JSON_TYPE = "application/json; charset=utf-8".toMediaType()
     }

@@ -3,8 +3,16 @@ package com.voiceime
 /** One candidate word shown in the candidate bar. */
 data class Candidate(val word: String, val pinyin: String = "")
 
-/** Local lookup result for a T9 digit string. */
-data class CandidateResult(val pinyin: String, val candidates: List<Candidate>)
+/**
+ * Local lookup result for a T9 digit string. [segmentations] is the ranked
+ * list of space-joined pinyin readings, best-word score first; [pinyin] is
+ * the currently displayed one (by default the one behind the top candidate).
+ */
+data class CandidateResult(
+    val pinyin: String,
+    val candidates: List<Candidate>,
+    val segmentations: List<String> = emptyList()
+)
 
 /**
  * Local-first candidate source. Implementations must be fast (indexed DB,
@@ -13,6 +21,9 @@ data class CandidateResult(val pinyin: String, val candidates: List<Candidate>)
 interface CandidateProvider {
     fun lookup(digits: String): CandidateResult
     fun rememberTap(word: String) {}
+
+    /** Candidates restricted to one chosen segmentation (space-joined pinyin). */
+    fun lookupFor(digits: String, segmentation: String): CandidateResult = lookup(digits)
 
     /** Best pinyin reading of a digit string, for the online suggestion query. */
     fun pinyinFor(digits: String): String = digits

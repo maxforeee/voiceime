@@ -61,12 +61,21 @@ class Lexicon(private val context: Context) : CandidateProvider {
         }
     }
 
-    override fun lookup(digits: String): CandidateResult {
+    override fun lookup(digits: String): CandidateResult = lookup(digits, null)
+
+    override fun lookupFor(digits: String, segmentation: String): CandidateResult =
+        lookup(digits, segmentation)
+
+    /**
+     * [chosenSeg] null = default view: candidates ranked globally, label shows
+     * the segmentation behind the top word. Non-null = only words readable
+     * with that segmentation, no partial-input suggestions.
+     */
+    private fun lookup(digits: String, chosenSeg: String?): CandidateResult {
         val database = db ?: return CandidateResult(digits, emptyList())
         if (digits.isEmpty()) return CandidateResult("", emptyList())
         return try {
             val segs = segment(digits)
-            val pinyin = segs.firstOrNull()?.joinToString(" ") ?: digits
             val keys = segs.map { it.joinToString("") }.distinct()
 
             // (wordId, weight, pinyinKey) for every hit across ALL segmentations
@@ -74,9 +83,26 @@ class Lexicon(private val context: Context) : CandidateProvider {
             for (key in keys) entries.addAll(readKey(database, key))
 
             val words = readWords(database, entries.map { it.first }.distinct())
+
+            // Rank segmentations by the score of the best word each produces,
+            // so the label defaults to the reading behind the first choice.
+            val keyBest = HashMap<String, Long>()
+            for ((wid, weight, key) in entries) {
+                val wf = words[wid] ?: continue
+                val s = score(wf.second, weight) + boost(wf.first)
+                val prev = keyBest[key]
+                if (prev == null || s > prev) keyBest[key] = s
+            }
+            val rankedSegs = segs.map { it.joinToString(" ") }.distinct()
+                .sortedByDescending { keyBest[it.replace(" ", "")] ?: Long.MIN_VALUE }
+                .take(SEG_N)
+            val pinyin = chosenSeg ?: rankedSegs.firstOrNull() ?: digits
+
+            val chosenKey = chosenSeg?.replace(" ", "")
+            val pool = if (chosenKey == null) entries else entries.filter { it.third == chosenKey }
             val best = HashMap<String, Long>()
             val bestKey = HashMap<String, String>()
-            for ((wid, weight, key) in entries) {
+            for ((wid, weight, key) in pool) {
                 val wf = words[wid] ?: continue
                 val s = score(wf.second, weight) + boost(wf.first)
                 val prev = best[wf.first]
@@ -89,25 +115,28 @@ class Lexicon(private val context: Context) : CandidateProvider {
             val cands = ArrayList<Candidate>(ranked.size + 30)
             for (e in ranked) cands.add(Candidate(e.key, bestKey[e.key] ?: ""))
 
-            // Partial-input suggestions from the prebuilt digit-prefix index.
-            val seen = HashSet(cands.map { it.word })
-            val prefixIds = ArrayList<Pair<Int, Long>>()
-            database.rawQuery(
-                "SELECT wid, s FROM prefix WHERE d GLOB ? ORDER BY s DESC LIMIT 30",
-                arrayOf(digits + "*")
-            ).use { c ->
-                while (c.moveToNext()) prefixIds.add(c.getInt(0) to c.getLong(1))
-            }
-            val prefixWords = readWords(database, prefixIds.map { it.first })
-            for ((wid, s) in prefixIds) {
-                val wf = prefixWords[wid] ?: continue
-                if (seen.add(wf.first)) cands.add(Candidate(wf.first, ""))
+            // Partial-input suggestions from the prebuilt digit-prefix index
+            // (default view only; they do not belong to a chosen segmentation).
+            if (chosenKey == null) {
+                val seen = HashSet(cands.map { it.word })
+                val prefixIds = ArrayList<Pair<Int, Long>>()
+                database.rawQuery(
+                    "SELECT wid, s FROM prefix WHERE d GLOB ? ORDER BY s DESC LIMIT 30",
+                    arrayOf(digits + "*")
+                ).use { c ->
+                    while (c.moveToNext()) prefixIds.add(c.getInt(0) to c.getLong(1))
+                }
+                val prefixWords = readWords(database, prefixIds.map { it.first })
+                for ((wid, s) in prefixIds) {
+                    val wf = prefixWords[wid] ?: continue
+                    if (seen.add(wf.first)) cands.add(Candidate(wf.first, ""))
+                }
             }
 
             if (cands.isEmpty() && segs.isNotEmpty()) {
                 // Rare phrase dropped by the build-time trim: offer the chars of
                 // the first syllable so the user can build the word char by char.
-                val firstSyl = segs[0][0]
+                val firstSyl = chosenSeg?.split(" ")?.firstOrNull() ?: segs[0][0]
                 val chars = readKey(database, firstSyl)
                 val charWords = readWords(database, chars.map { it.first }.distinct())
                 val charBest = HashMap<String, Long>()
@@ -120,7 +149,7 @@ class Lexicon(private val context: Context) : CandidateProvider {
                 charBest.entries.sortedByDescending { it.value }.take(TOP_N)
                     .forEach { cands.add(Candidate(it.key, firstSyl)) }
             }
-            CandidateResult(pinyin, cands)
+            CandidateResult(pinyin, cands, rankedSegs)
         } catch (e: Exception) {
             Log.e(TAG, "lookup failed: ${e.javaClass.simpleName}")
             CandidateResult(digits, emptyList())
@@ -267,6 +296,7 @@ class Lexicon(private val context: Context) : CandidateProvider {
         private const val PREFS = "voiceime_lexicon"
         private const val KEY_TAPS = "taps"
         private const val TOP_N = 50
+        private const val SEG_N = 20
         private const val MAX_TAPS = 1000
         private val FIRST_LETTER = mapOf(
             '2' to "a", '3' to "d", '4' to "g", '5' to "j",

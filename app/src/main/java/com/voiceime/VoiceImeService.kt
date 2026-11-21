@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
@@ -88,9 +89,15 @@ class VoiceImeService : InputMethodService() {
     // Online suggestions: debounced, 300ms drop deadline, never blocks typing.
     private val online = GoogleSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
     private var lastLocal = CandidateResult("", emptyList())
+    // Index into lastLocal.segmentations; 0 = the reading behind the top word.
+    private var segIndex = 0
     private val onlineRequest = Runnable {
         val d = digits.toString()
-        if (d.isNotEmpty()) online.request(d, candidateProvider?.pinyinFor(d) ?: d)
+        if (d.isNotEmpty()) {
+            val py = lastLocal.segmentations.getOrNull(segIndex)?.replace(" ", "")
+                ?: candidateProvider?.pinyinFor(d) ?: d
+            online.request(d, py)
+        }
     }
 
     // Voice session state. sessionId invalidates stale async callbacks.
@@ -121,6 +128,15 @@ class VoiceImeService : InputMethodService() {
     }
 
     override fun onCreateInputView(): View {
+        // Match the system navigation bar to the keyboard background; API 29+
+        // would otherwise enforce a contrast scrim against #ECEFF1.
+        window?.window?.let { w ->
+            w.navigationBarColor = getColor(R.color.keyboard_bg)
+            if (Build.VERSION.SDK_INT >= 29) {
+                w.isNavigationBarContrastEnforced = false
+            }
+        }
+
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(getColor(R.color.keyboard_bg))
@@ -132,6 +148,7 @@ class VoiceImeService : InputMethodService() {
         }
         candidateBar = CandidateBar(this)
         candidateBar.onTap = { c -> commitCandidate(c) }
+        candidateBar.onSegmentationTap = { cycleSegmentation() }
         val clipboardBtn = ImageButton(this).apply {
             setImageResource(R.drawable.ic_clipboard)
             background = null
@@ -145,8 +162,8 @@ class VoiceImeService : InputMethodService() {
             setOnClickListener { onToggle() }
         }
         topBar.addView(candidateBar, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
-        topBar.addView(clipboardBtn, LinearLayout.LayoutParams(dp(44f), LinearLayout.LayoutParams.MATCH_PARENT))
-        topBar.addView(toggleBtn, LinearLayout.LayoutParams(dp(48f), LinearLayout.LayoutParams.MATCH_PARENT))
+        topBar.addView(clipboardBtn, LinearLayout.LayoutParams(dp(36f), LinearLayout.LayoutParams.MATCH_PARENT))
+        topBar.addView(toggleBtn, LinearLayout.LayoutParams(dp(40f), LinearLayout.LayoutParams.MATCH_PARENT))
         root.addView(topBar, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44f)))
 
         val divider = View(this).apply { setBackgroundColor(getColor(R.color.divider)) }
@@ -154,7 +171,21 @@ class VoiceImeService : InputMethodService() {
 
         keyboard = T9KeyboardView(this)
         keyboard.onKey = { k -> onKey(k) }
-        root.addView(keyboard, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        // Gboard-style fixed height: measure the typing keyboard ONCE (main and
+        // symbol pages) and give all three panels the SAME height, so switching
+        // panels never changes the window height; panels scroll internally.
+        keyboard.showMain(lang == Lang.ZH)
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(
+            resources.displayMetrics.widthPixels, View.MeasureSpec.EXACTLY
+        )
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        keyboard.measure(widthSpec, heightSpec)
+        val mainHeight = keyboard.measuredHeight
+        keyboard.showSymbols()
+        keyboard.measure(widthSpec, heightSpec)
+        val panelHeight = maxOf(mainHeight, keyboard.measuredHeight)
+        keyboard.showMain(lang == Lang.ZH)
+        root.addView(keyboard, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
         voiceView = VoiceKeyboardView(this).apply {
             visibility = View.GONE
@@ -169,7 +200,7 @@ class VoiceImeService : InputMethodService() {
             }
             onBackToKeyboard = { switchToKeyboard() }
         }
-        root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
         clipboardPanel = ClipboardPanelView(this).apply {
             visibility = View.GONE
@@ -183,9 +214,13 @@ class VoiceImeService : InputMethodService() {
             }
             onClose = { closeClipboardPanel() }
         }
-        root.addView(clipboardPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        root.addView(clipboardPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
-        keyboard.showMain(lang == Lang.ZH)
+        // Filler: if the IME window ends up taller than the fixed-height
+        // panels, this keeps the bottom area in the keyboard colour.
+        val bottomFiller = View(this).apply { setBackgroundColor(getColor(R.color.keyboard_bg)) }
+        root.addView(bottomFiller, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+
         return root
     }
 
@@ -605,17 +640,34 @@ class VoiceImeService : InputMethodService() {
 
     private fun refreshCandidates() {
         val d = digits.toString()
+        segIndex = 0
         val result = if (d.isEmpty()) {
             CandidateResult("", emptyList())
         } else {
             candidateProvider?.lookup(d) ?: CandidateResult(d, emptyList())
         }
         lastLocal = result
-        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates)
+        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations.size > 1)
         // Local candidates are already on screen; only now arm the network.
         online.cancel()
         handler.removeCallbacks(onlineRequest)
         if (d.isNotEmpty() && lang == Lang.ZH && !symbolsPage) {
+            handler.postDelayed(onlineRequest, ONLINE_DEBOUNCE_MS)
+        }
+    }
+
+    /** Pinyin label tapped: show the next ranked segmentation and its words. */
+    private fun cycleSegmentation() {
+        val segs = lastLocal.segmentations
+        val d = digits.toString()
+        if (segs.size < 2 || d.isEmpty()) return
+        segIndex = (segIndex + 1) % segs.size
+        val result = candidateProvider?.lookupFor(d, segs[segIndex]) ?: return
+        lastLocal = result
+        candidateBar.update(result.pinyin.ifEmpty { d }, result.candidates, result.segmentations.size > 1)
+        online.cancel()
+        handler.removeCallbacks(onlineRequest)
+        if (lang == Lang.ZH && !symbolsPage) {
             handler.postDelayed(onlineRequest, ONLINE_DEBOUNCE_MS)
         }
     }
@@ -627,7 +679,7 @@ class VoiceImeService : InputMethodService() {
         val merged = ArrayList<Candidate>(words.size + lastLocal.candidates.size)
         for (w in words) merged.add(Candidate(w))
         for (c in lastLocal.candidates) if (c.word !in onlineSet) merged.add(c)
-        candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged)
+        candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged, lastLocal.segmentations.size > 1)
     }
 
     private fun commitCandidate(c: Candidate) {
@@ -640,7 +692,9 @@ class VoiceImeService : InputMethodService() {
     /** Commit the top candidate if there is one, otherwise the raw digits. */
     private fun commitFirstOrRaw() {
         val d = digits.toString()
-        val first = candidateProvider?.lookup(d)?.candidates?.firstOrNull()
+        // A user-chosen segmentation must not be overridden by the global top word.
+        val first = if (segIndex > 0) lastLocal.candidates.firstOrNull()
+        else candidateProvider?.lookup(d)?.candidates?.firstOrNull()
         commit(first?.word ?: d)
         digits.clear()
         refreshCandidates()

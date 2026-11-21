@@ -17,6 +17,9 @@ class CandidateBar(context: Context) : LinearLayout(context) {
 
     var onTap: ((Candidate) -> Unit)? = null
 
+    /** Tap on the pinyin label: cycle to the next segmentation. */
+    var onSegmentationTap: (() -> Unit)? = null
+
     private val composingLabel = TextView(context).apply {
         textSize = 14f
         setTextColor(context.getColor(R.color.key_text_secondary))
@@ -39,8 +42,16 @@ class CandidateBar(context: Context) : LinearLayout(context) {
         addView(scroll, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
     }
 
-    fun update(composingText: String, candidates: List<Candidate>) {
-        composingLabel.text = composingText
+    fun update(
+        composingText: String,
+        candidates: List<Candidate>,
+        canCycleSegmentation: Boolean = false
+    ) {
+        composingLabel.text = if (canCycleSegmentation) "$composingText ▾" else composingText
+        composingLabel.isClickable = canCycleSegmentation
+        composingLabel.setOnClickListener(
+            if (canCycleSegmentation) View.OnClickListener { onSegmentationTap?.invoke() } else null
+        )
         composingLabel.visibility = if (composingText.isEmpty()) View.GONE else View.VISIBLE
         row.removeAllViews()
         candidates.forEachIndexed { i, c ->

@@ -57,13 +57,16 @@ class ClipboardPanelView(context: Context) : LinearLayout(context) {
             overScrollMode = View.OVER_SCROLL_NEVER
             addView(list, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
+        // The service gives this panel a fixed height, so weight 1 resolves to
+        // the space below the header and the list scrolls instead of collapsing.
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-        addView(emptyLabel, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }
 
     fun render(items: List<String>) {
         list.removeAllViews()
-        emptyLabel.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+        if (items.isEmpty()) {
+            list.addView(emptyLabel, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
         for (item in items) {
             val tv = TextView(context).apply {
                 text = item

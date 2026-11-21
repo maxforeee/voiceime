@@ -7,7 +7,11 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.View
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TextView
 import com.voiceime.R
 
@@ -24,7 +28,9 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     var onKey: ((String) -> Unit)? = null
 
     private val keyHeight: Int
-    private val gap = context.dp(3f)
+    private val symbolKeyHeight: Int
+    private val gap = context.dp(4f)
+    private var keyPreview: PopupWindow? = null
 
     init {
         orientation = VERTICAL
@@ -34,10 +40,13 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         val landscape = dm.widthPixels > dm.heightPixels
         // Auto height: scale rows with the screen, clamped to sane touch sizes.
         val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
-        keyHeight = target.toInt().coerceIn(context.dp(42f), context.dp(58f))
+        keyHeight = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
+        // 6 symbol rows must never exceed the 5-row main page's total height.
+        symbolKeyHeight = keyHeight * 5 / 6
     }
 
     fun showMain(zh: Boolean) {
+        dismissKeyPreview()
         removeAllViews()
         val sub1 = if (zh) "，" else null
         row(
@@ -57,35 +66,39 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         row(
             textKey("符号", "sym", function = true),
             textKey("空格", "space"),
-            textKey("回车", "enter", function = true)
+            textKey("回车", "enter", function = true),
+            weights = floatArrayOf(1f, 2f, 1f)
         )
     }
 
     fun showSymbols() {
+        dismissKeyPreview()
         removeAllViews()
-        row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"))
-        row(textKey("4", "4"), textKey("5", "5"), textKey("6", "6"))
-        row(textKey("7", "7"), textKey("8", "8"), textKey("9", "9"))
-        row(textKey("，", "，"), textKey("0", "0"), textKey("。", "。"))
-        row(textKey("？", "？"), textKey("！", "！"), textKey("…", "…"))
+        row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"), height = symbolKeyHeight)
+        row(textKey("4", "4"), textKey("5", "5"), textKey("6", "6"), height = symbolKeyHeight)
+        row(textKey("7", "7"), textKey("8", "8"), textKey("9", "9"), height = symbolKeyHeight)
+        row(textKey("，", "，"), textKey("0", "0"), textKey("。", "。"), height = symbolKeyHeight)
+        row(textKey("？", "？"), textKey("！", "！"), textKey("…", "…"), height = symbolKeyHeight)
         row(
             textKey("返回", "back", function = true),
             textKey("空格", "space"),
-            textKey("回车", "enter", function = true)
+            textKey("回车", "enter", function = true),
+            height = symbolKeyHeight,
+            weights = floatArrayOf(1f, 2f, 1f)
         )
     }
 
-    private fun row(vararg keys: TextView) {
+    private fun row(vararg keys: TextView, height: Int = keyHeight, weights: FloatArray? = null) {
         val row = LinearLayout(context).apply { orientation = HORIZONTAL }
-        for (k in keys) {
+        for ((i, k) in keys.withIndex()) {
             row.addView(
                 k,
-                LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
+                LayoutParams(0, LayoutParams.MATCH_PARENT, weights?.getOrNull(i) ?: 1f).apply {
                     setMargins(gap, gap, gap, gap)
                 }
             )
         }
-        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, keyHeight))
+        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, height))
     }
 
     private fun digitKey(digit: String, letters: String?): TextView {
@@ -93,9 +106,10 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
             SpannableStringBuilder(digit)
         } else {
             SpannableStringBuilder("$digit\n$letters").apply {
-                setSpan(RelativeSizeSpan(0.5f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                setSpan(RelativeSizeSpan(0.65f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                // Darker than key_text_secondary so the small letters stay readable.
                 setSpan(
-                    ForegroundColorSpan(context.getColor(R.color.key_text_secondary)),
+                    ForegroundColorSpan(0xFF5F6368.toInt()),
                     digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
@@ -114,7 +128,54 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         tv.setTextColor(context.getColor(R.color.key_text))
         tv.background = keyBackground(context, function)
         tv.isClickable = true
+        tv.isHapticFeedbackEnabled = true
+        // Returning false keeps the TextView's own press/click handling intact.
+        tv.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showKeyPreview(v as TextView)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> dismissKeyPreview()
+            }
+            false
+        }
         tv.setOnClickListener { onKey?.invoke(code) }
         return tv
+    }
+
+    /** Enlarged copy of the pressed key, floating just above it (Gboard-style). */
+    private fun showKeyPreview(key: TextView) {
+        dismissKeyPreview()
+        val content = TextView(context).apply {
+            gravity = Gravity.CENTER
+            text = key.text.toString().substringBefore('\n')
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            setTextColor(context.getColor(R.color.key_text))
+            background = keyBackground(context, false)
+            minWidth = key.width
+            val padH = context.dp(8f)
+            val padV = context.dp(10f)
+            setPadding(padH, padV, padH, padV)
+        }
+        val popup = PopupWindow(content, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+        // Let previews on the top row extend above the keyboard window.
+        popup.isClippingEnabled = false
+        popup.isTouchable = false
+        content.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val loc = IntArray(2)
+        key.getLocationInWindow(loc)
+        val x = loc[0] + (key.width - content.measuredWidth) / 2
+        val y = loc[1] - content.measuredHeight
+        popup.showAtLocation(key, Gravity.NO_GRAVITY, x, y)
+        keyPreview = popup
+    }
+
+    private fun dismissKeyPreview() {
+        keyPreview?.dismiss()
+        keyPreview = null
     }
 }

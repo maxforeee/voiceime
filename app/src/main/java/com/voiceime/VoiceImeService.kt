@@ -1,6 +1,7 @@
 package com.voiceime
 
 import android.Manifest
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
@@ -8,6 +9,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -16,9 +18,11 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import com.voiceime.asr.AudioCapture
 import com.voiceime.asr.DoubaoAsrClient
+import com.voiceime.clipboard.ClipboardHistory
 import com.voiceime.lexicon.Lexicon
 import com.voiceime.online.GoogleSuggestions
 import com.voiceime.ui.CandidateBar
+import com.voiceime.ui.ClipboardPanelView
 import com.voiceime.ui.T9KeyboardView
 import com.voiceime.ui.VoiceKeyboardView
 import com.voiceime.ui.dp
@@ -47,15 +51,32 @@ class VoiceImeService : InputMethodService() {
     private lateinit var candidateBar: CandidateBar
     private lateinit var keyboard: T9KeyboardView
     private lateinit var voiceView: VoiceKeyboardView
+    private lateinit var clipboardPanel: ClipboardPanelView
     private lateinit var toggleBtn: ImageButton
 
     private val digits = StringBuilder()
     private var lang = Lang.ZH
     private var symbolsPage = false
     private var mode = Mode.KEYBOARD
+    private var panelOpen = false
 
     /** Local lexicon engine (Chunk 3). */
     var candidateProvider: CandidateProvider? = null
+
+    // Clipboard history: last 10 copied items, local only.
+    private lateinit var clipboardHistory: ClipboardHistory
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
+        try {
+            val cm = getSystemService(ClipboardManager::class.java) ?: return@OnPrimaryClipChangedListener
+            val clip = cm.primaryClip ?: return@OnPrimaryClipChangedListener
+            if (clip.itemCount > 0) {
+                val text = clip.getItemAt(0).coerceToText(this)?.toString()
+                if (!text.isNullOrBlank()) clipboardHistory.add(text)
+            }
+        } catch (e: Exception) {
+            // Android 10+ restricts background clipboard reads; skip silently.
+        }
+    }
 
     // English multitap state (2=abc, 3=def, ... cycling within a timeout).
     private val handler = Handler(Looper.getMainLooper())
@@ -88,6 +109,15 @@ class VoiceImeService : InputMethodService() {
         val lexicon = Lexicon(this)
         lexicon.prepare()
         candidateProvider = lexicon
+        clipboardHistory = ClipboardHistory(this)
+        getSystemService(ClipboardManager::class.java)
+            ?.addPrimaryClipChangedListener(clipListener)
+    }
+
+    override fun onDestroy() {
+        getSystemService(ClipboardManager::class.java)
+            ?.removePrimaryClipChangedListener(clipListener)
+        super.onDestroy()
     }
 
     override fun onCreateInputView(): View {
@@ -102,6 +132,12 @@ class VoiceImeService : InputMethodService() {
         }
         candidateBar = CandidateBar(this)
         candidateBar.onTap = { c -> commitCandidate(c) }
+        val clipboardBtn = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_clipboard)
+            background = null
+            contentDescription = getString(R.string.clipboard_desc)
+            setOnClickListener { toggleClipboardPanel() }
+        }
         toggleBtn = ImageButton(this).apply {
             setImageResource(R.drawable.ic_mic)
             background = null
@@ -109,6 +145,7 @@ class VoiceImeService : InputMethodService() {
             setOnClickListener { onToggle() }
         }
         topBar.addView(candidateBar, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+        topBar.addView(clipboardBtn, LinearLayout.LayoutParams(dp(44f), LinearLayout.LayoutParams.MATCH_PARENT))
         topBar.addView(toggleBtn, LinearLayout.LayoutParams(dp(48f), LinearLayout.LayoutParams.MATCH_PARENT))
         root.addView(topBar, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(44f)))
 
@@ -134,6 +171,20 @@ class VoiceImeService : InputMethodService() {
         }
         root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
 
+        clipboardPanel = ClipboardPanelView(this).apply {
+            visibility = View.GONE
+            onPaste = { item ->
+                commit(item)
+                closeClipboardPanel()
+            }
+            onClear = {
+                clipboardHistory.clear()
+                render(clipboardHistory.all())
+            }
+            onClose = { closeClipboardPanel() }
+        }
+        root.addView(clipboardPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+
         keyboard.showMain(lang == Lang.ZH)
         return root
     }
@@ -143,13 +194,24 @@ class VoiceImeService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         stopVoiceSession(salvage = false)
+        if (panelOpen) closeClipboardPanel()
         resetInput()
-        if (mode == Mode.VOICE) resetVoiceUi()
+        if (mode == Mode.VOICE) {
+            resetVoiceUi()
+        } else if (::keyboard.isInitialized) {
+            // Number/phone fields open straight onto the digits page.
+            val cls = (info?.inputType ?: 0) and InputType.TYPE_MASK_CLASS
+            if (cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE) {
+                symbolsPage = true
+                keyboard.showSymbols()
+            }
+        }
     }
 
     override fun onFinishInput() {
         super.onFinishInput()
         stopVoiceSession(salvage = false)
+        if (panelOpen) closeClipboardPanel()
         resetInput()
     }
 
@@ -174,10 +236,15 @@ class VoiceImeService : InputMethodService() {
     // ---- mode toggle (top-right, the only voice entry) ----------------------
 
     private fun onToggle() {
+        if (panelOpen) {
+            closeClipboardPanel()
+            return
+        }
         if (mode == Mode.KEYBOARD) switchToVoice() else switchToKeyboard()
     }
 
     private fun switchToVoice() {
+        if (panelOpen) closeClipboardPanel()
         flushBuffer()
         stopVoiceSession(salvage = true)
         mode = Mode.VOICE
@@ -189,6 +256,7 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun switchToKeyboard() {
+        if (panelOpen) closeClipboardPanel()
         stopVoiceSession(salvage = true)
         mode = Mode.KEYBOARD
         voiceView.visibility = View.GONE
@@ -387,6 +455,34 @@ class VoiceImeService : InputMethodService() {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return false
         val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    // ---- clipboard panel ------------------------------------------------------
+
+    private fun toggleClipboardPanel() {
+        if (panelOpen) closeClipboardPanel() else openClipboardPanel()
+    }
+
+    private fun openClipboardPanel() {
+        flushBuffer()
+        stopVoiceSession(salvage = true)
+        panelOpen = true
+        keyboard.visibility = View.GONE
+        voiceView.visibility = View.GONE
+        clipboardPanel.visibility = View.VISIBLE
+        clipboardPanel.render(clipboardHistory.all())
+    }
+
+    private fun closeClipboardPanel() {
+        panelOpen = false
+        clipboardPanel.visibility = View.GONE
+        if (mode == Mode.VOICE) {
+            voiceView.visibility = View.VISIBLE
+            resetVoiceUi()
+        } else {
+            keyboard.visibility = View.VISIBLE
+            resetInput()
+        }
     }
 
     // ---- key dispatch -------------------------------------------------------

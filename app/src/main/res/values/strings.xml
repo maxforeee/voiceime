@@ -17,4 +17,10 @@
     <string name="voice_timeout">识别超时，请重试</string>
     <string name="voice_back_keyboard">键盘</string>
     <string name="voice_edit_reserved">修改 · v2 即将推出</string>
+
+    <string name="clipboard_desc">剪贴板</string>
+    <string name="clipboard_title">剪贴板 · 最近 10 条</string>
+    <string name="clipboard_clear">清空</string>
+    <string name="clipboard_close">关闭</string>
+    <string name="clipboard_empty">暂无复制内容</string>
 </resources>

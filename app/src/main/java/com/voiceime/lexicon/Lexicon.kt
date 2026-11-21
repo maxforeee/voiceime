@@ -35,6 +35,15 @@ class Lexicon(private val context: Context) : CandidateProvider {
     private val sylByDigits = HashMap<String, List<String>>()
     private val taps = HashMap<String, Int>()
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    /** Cloud lexicon DB (built by CloudLexicon); null when offline / not synced. */
+    @Volatile
+    private var cloudDb: SQLiteDatabase? = null
+    /** First (most frequent) pinyin reading per character, built in prepare(). */
+    private val charPinyinMap = HashMap<Char, String>()
+    /** All 424 legal syllables, built in prepare() from the syl table. */
+    private var syllableSet: Set<String> = emptySet()
+    /** Built-in (word|pinyin) pairs, for cloud dedupe; built lazily. */
+    private var builtInPairsCache: Set<String>? = null
 
     /** Copy the asset DB once, open it, load the syllable table + tap memory. */
     fun prepare() {
@@ -58,6 +67,7 @@ class Lexicon(private val context: Context) : CandidateProvider {
                 }
                 for ((d, list) in tmp) sylByDigits[d] = list.sorted()
             }
+            buildDerivedIndexes(database)
         } catch (e: Exception) {
             // Typing must keep working even if the lexicon cannot be opened.
             Log.e(TAG, "lexicon prepare failed: ${e.javaClass.simpleName}")
@@ -97,8 +107,14 @@ class Lexicon(private val context: Context) : CandidateProvider {
                 val prev = keyBest[key]
                 if (prev == null || s > prev) keyBest[key] = s
             }
+            // Rank segmentations by fewest segments first (longest syllables),
+            // then by the best word each produces. "ni hao" (2 segments) must
+            // outrank "ni ha o" (3) even when both join to the same key.
             val rankedSegs = segs.map { it.joinToString(" ") }.distinct()
-                .sortedByDescending { keyBest[it.replace(" ", "")] ?: Long.MIN_VALUE }
+                .sortedWith(
+                    compareBy<String> { it.split(" ").size }
+                        .thenByDescending { keyBest[it.replace(" ", "")] ?: Long.MIN_VALUE }
+                )
                 .take(SEG_N)
             val pinyin = chosenSeg ?: rankedSegs.firstOrNull() ?: digits
 
@@ -115,6 +131,36 @@ class Lexicon(private val context: Context) : CandidateProvider {
                     bestKey[wf.first] = key
                 }
             }
+            // Cloud lexicon (when synced): same pinyin, merged in and
+            // re-ranked by the same score. Words already in the built-in
+            // lexicon were never stored in the cloud DB, so a cloud word
+            // only wins if its score is higher. Cloud pinyin is stored
+            // space-separated ("ni hao"), unlike the built-in key ("nihao").
+            cloudDb?.let { cloud ->
+                try {
+                    val cloudKeys = if (chosenSeg != null) listOf(chosenSeg)
+                    else segs.map { it.joinToString(" ") }.distinct()
+                    for (pinyin in cloudKeys) {
+                        cloud.rawQuery(
+                            "SELECT word, freq FROM cloud_word WHERE pinyin=?",
+                            arrayOf(pinyin)
+                        ).use { c ->
+                            while (c.moveToNext()) {
+                                val word = c.getString(0)
+                                val s = score(c.getInt(1), CLOUD_WEIGHT) + boost(word)
+                                val prev = best[word]
+                                if (prev == null || s > prev) {
+                                    best[word] = s
+                                    bestKey[word] = pinyin.replace(" ", "")
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "cloud lookup failed: ${e.javaClass.simpleName}")
+                }
+            }
+
             val ranked = best.entries.sortedByDescending { it.value }.take(TOP_N)
             val cands = ArrayList<Candidate>(ranked.size + 30)
             for (e in ranked) cands.add(Candidate(e.key, bestKey[e.key] ?: ""))
@@ -199,6 +245,101 @@ class Lexicon(private val context: Context) : CandidateProvider {
         return digits.map { FIRST_LETTER[it] ?: "" }.joinToString("")
     }
 
+    /**
+     * Build the derived indexes, on the calling (background) thread:
+     * the legal-syllable set, and the first pinyin reading per character
+     * (the reading of that character's highest-frequency single-character
+     * word). Both feed correction context and cloud proper-noun pinyin.
+     * Runs once per prepare(); typing never waits for it.
+     */
+    private fun buildDerivedIndexes(database: SQLiteDatabase) {
+        syllableSet = sylByDigits.values.flatten().toSet()
+        val words = HashMap<Int, Pair<String, Int>>()
+        database.rawQuery("SELECT id, w, f FROM word", null).use { c ->
+            while (c.moveToNext()) words[c.getInt(0)] = c.getString(1) to c.getInt(2)
+        }
+        val best = HashMap<Char, Pair<String, Int>>()
+        database.rawQuery("SELECT p, ws FROM pykey", null).use { c ->
+            while (c.moveToNext()) {
+                val pinyin = c.getString(0)
+                val blob = c.getBlob(1)
+                var pos = 0
+                while (pos < blob.size) {
+                    var wid = 0
+                    var shift = 0
+                    while (true) {
+                        val b = blob[pos].toInt() and 0xFF
+                        pos++
+                        wid = wid or ((b and 0x7F) shl shift)
+                        if (b and 0x80 == 0) break
+                        shift += 7
+                    }
+                    pos += 2 // u16 weight, not needed here
+                    val wf = words[wid] ?: continue
+                    if (wf.first.length != 1) continue
+                    val ch = wf.first[0]
+                    val prev = best[ch]
+                    if (prev == null || wf.second > prev.second) best[ch] = pinyin to wf.second
+                }
+            }
+        }
+        charPinyinMap.clear()
+        for ((ch, py) in best) charPinyinMap[ch] = py.first
+        builtInPairsCache = null
+    }
+
+    /** All legal pinyin syllables (424), from the syl table. */
+    fun syllables(): Set<String> = syllableSet
+
+    /** First (most frequent) pinyin reading of a character, or null. */
+    fun charPinyin(ch: Char): String? = charPinyinMap[ch]
+
+    /** Learned words with tap counts, for the English engine's learned-first. */
+    fun learnedMap(): Map<String, Int> = HashMap(taps)
+
+    /** Built-in (word|pinyin) pairs, for cloud dedupe; built once, lazily. */
+    fun wordPinyinPairs(): Set<String> {
+        builtInPairsCache?.let { return it }
+        val database = db ?: return emptySet()
+        val out = HashSet<String>()
+        try {
+            val words = HashMap<Int, String>()
+            database.rawQuery("SELECT id, w FROM word", null).use { c ->
+                while (c.moveToNext()) words[c.getInt(0)] = c.getString(1)
+            }
+            database.rawQuery("SELECT p, ws FROM pykey", null).use { c ->
+                while (c.moveToNext()) {
+                    val pinyin = c.getString(0)
+                    val blob = c.getBlob(1)
+                    var pos = 0
+                    while (pos < blob.size) {
+                        var wid = 0
+                        var shift = 0
+                        while (true) {
+                            val b = blob[pos].toInt() and 0xFF
+                            pos++
+                            wid = wid or ((b and 0x7F) shl shift)
+                            if (b and 0x80 == 0) break
+                            shift += 7
+                        }
+                        pos += 2
+                        val word = words[wid] ?: continue
+                        out.add("$word|$pinyin")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "wordPinyinPairs failed: ${e.javaClass.simpleName}")
+        }
+        builtInPairsCache = out
+        return out
+    }
+
+    /** Attach (or detach, with null) the cloud lexicon DB. */
+    fun attachCloudDb(database: SQLiteDatabase?) {
+        cloudDb = database
+    }
+
     // ---- segmentation (exact port of t9_verify.py segment()) ----------------
 
     private fun segment(digits: String, cap: Int = 200): List<List<String>> {
@@ -207,8 +348,15 @@ class Lexicon(private val context: Context) : CandidateProvider {
             if (i == digits.length) return listOf(emptyList())
             memo[i]?.let { return it }
             val out = ArrayList<List<String>>()
-            for (len in 1..6) {
-                if (i + len > digits.length) break
+            // Longest first: a chunk that can form a longer legal syllable
+            // must be tried before its prefixes, so "hao" wins over "ha"+"o".
+            // The ranking below (fewest segments first) then picks the
+            // segmentation with the longest syllables overall.
+            for (len in 6 downTo 1) {
+                // Lengths are tried longest-first: an over-long length is
+                // skipped (continue), it must NOT abort the loop (break) --
+                // break here would kill every input shorter than 6 digits.
+                if (i + len > digits.length) continue
                 val chunk = digits.substring(i, i + len)
                 val syls = sylByDigits[chunk] ?: continue
                 for (s in syls) {
@@ -225,6 +373,100 @@ class Lexicon(private val context: Context) : CandidateProvider {
             return out
         }
         return rec(0)
+    }
+
+    /**
+     * Local single-edit correction (v1.3.0). ONLY for input that cannot be
+     * spelled at all: no legal segmentation (and therefore no candidates).
+     * Legal syllables are NEVER corrected here — hou vs hao must wait for
+     * the AI layer, which sees the full context.
+     *
+     * Tries one substitution / deletion / insertion of a single digit and
+     * returns the corrected digit string with its candidates when exactly
+     * one variant produces a strong common word with a clear margin over
+     * the runner-up (top-word frequency at least CORRECT_MARGIN times the
+     * runner-up's). Context helps: when the preceding committed character
+     * plus the corrected word form a known word, that variant's frequency
+     * counts double.
+     *
+     * Runs on a background thread; callers only call it when lookup()
+     * came back empty. Returns null when not confident.
+     */
+    fun suggestCorrection(digits: String, beforeText: String): Pair<String, List<Candidate>>? {
+        val database = db ?: return null
+        if (digits.length < 2 || digits.length > 20) return null
+        if (segment(digits).isNotEmpty()) return null
+        val variants = LinkedHashSet<String>()
+        for (i in digits.indices) {
+            for (d in "23456789") {
+                if (d == digits[i]) continue
+                variants.add(digits.substring(0, i) + d + digits.substring(i + 1))
+            }
+            variants.add(digits.removeRange(i, i + 1))
+        }
+        for (i in 0..digits.length) {
+            for (d in "23456789") {
+                variants.add(digits.substring(0, i) + d + digits.substring(i))
+            }
+        }
+        var bestVariant: String? = null
+        var bestFreq = 0
+        var secondFreq = 0
+        for (v in variants) {
+            val segs = segment(v)
+            if (segs.isEmpty()) continue
+            val top = topWord(v) ?: continue
+            var freq = top.second
+            if (contextMatch(top.first, segs[0][0], beforeText)) freq *= CONTEXT_FREQ_MULT
+            if (freq > bestFreq) {
+                secondFreq = bestFreq
+                bestFreq = freq
+                bestVariant = v
+            } else if (freq > secondFreq) {
+                secondFreq = freq
+            }
+        }
+        val corrected = bestVariant ?: return null
+        if (bestFreq < CORRECT_MIN_FREQ) return null
+        if (secondFreq > 0 && bestFreq < CORRECT_MARGIN * secondFreq) return null
+        val result = lookup(corrected, null)
+        if (result.candidates.isEmpty()) return null
+        return corrected to result.candidates
+    }
+
+    /** Highest-scoring word for a digit string, with its corpus count. */
+    private fun topWord(digits: String): Pair<String, Int>? {
+        val database = db ?: return null
+        val segs = segment(digits)
+        if (segs.isEmpty()) return null
+        val keys = segs.map { it.joinToString("") }.distinct()
+        val entries = ArrayList<Triple<Int, Double, String>>()
+        for (key in keys) entries.addAll(readKey(database, key))
+        if (entries.isEmpty()) return null
+        val words = readWords(database, entries.map { it.first }.distinct())
+        var best: Pair<String, Int>? = null
+        var bestScore = Long.MIN_VALUE
+        for ((wid, weight, _) in entries) {
+            val wf = words[wid] ?: continue
+            val s = score(wf.second, weight) + boost(wf.first)
+            if (s > bestScore) {
+                bestScore = s
+                best = wf
+            }
+        }
+        return best
+    }
+
+    /** Does (last committed char + corrected word) form a known word? */
+    private fun contextMatch(word: String, firstSyl: String, beforeText: String): Boolean {
+        if (beforeText.isEmpty() || word.isEmpty()) return false
+        val lastChar = beforeText.last()
+        val lastPy = charPinyin(lastChar) ?: return false
+        val database = db ?: return false
+        val entries = readKey(database, lastPy + firstSyl)
+        if (entries.isEmpty()) return false
+        val words = readWords(database, entries.map { it.first }.distinct())
+        return words.values.any { it.first == "$lastChar$word" }
     }
 
     // ---- DB helpers ----------------------------------------------------------
@@ -373,12 +615,22 @@ class Lexicon(private val context: Context) : CandidateProvider {
         private const val TAG = "VoiceImeLexicon"
         private const val DB_NAME = "lexicon.db"
         private const val LEARNED_DB_NAME = "learned.db"
-        private const val SCHEMA_VERSION = "1"
+        private const val SCHEMA_VERSION = "2"
         private const val PREFS = "voiceime_lexicon"
         private const val KEY_TAPS = "taps"
         private const val TOP_N = 50
         private const val SEG_N = 20
         private const val MAX_TAPS = 1000
+        /** Dict weight used for cloud words (they carry no dict weight). */
+        private const val CLOUD_WEIGHT = 0.5
+        /** A correction must be a common word (corpus count at least this). */
+        private const val CORRECT_MIN_FREQ = 1000
+        /** A correction's top word must be this many times more frequent
+         *  than the runner-up variant's top word (a clear margin). */
+        private const val CORRECT_MARGIN = 3
+        /** Context match (preceding char + corrected word form a known word)
+         *  doubles the variant's frequency when comparing. */
+        private const val CONTEXT_FREQ_MULT = 2
         private val FIRST_LETTER = mapOf(
             '2' to "a", '3' to "d", '4' to "g", '5' to "j",
             '6' to "m", '7' to "p", '8' to "t", '9' to "w"

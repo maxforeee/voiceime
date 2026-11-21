@@ -1,0 +1,194 @@
+[
+  {
+    "variant": "base",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.314,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "base",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.313,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.358,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "lid",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.344,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  },
+  {
+    "variant": "lang_zh",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.304,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "lang_zh",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.301,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  },
+  {
+    "variant": "lang_en",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.329,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "lang_en",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.369,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  }
+]

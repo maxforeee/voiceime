@@ -27,3 +27,6 @@ __pycache__/
 
 # Sherpa-ONNX AAR: 52 MB prebuilt, downloaded by CI into app/libs/.
 app/libs/
+asr_lang_test/*.mp3
+asr_lang_test/*.wav
+asr_lang_test/*.log

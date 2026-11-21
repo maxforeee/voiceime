@@ -32,6 +32,8 @@ import com.voiceime.asr.OfflineAsr
 import com.voiceime.asr.OfflineModelDownloader
 import com.voiceime.asr.SemanticCorrector
 import com.voiceime.clipboard.ClipboardHistory
+import com.voiceime.lexicon.CloudLexicon
+import com.voiceime.lexicon.EnglishLexicon
 import com.voiceime.lexicon.Lexicon
 import com.voiceime.online.SogouSuggestions
 import com.voiceime.ui.CandidateBar
@@ -47,17 +49,27 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * VoiceIME input method.
+ * VoiceIME input method (v1.3.0: one 9-key grid, no 26-key QWERTY).
  *
  * Two modes, ONE toggle fixed at the top-right corner (the only voice entry):
- *  - KEYBOARD: T9 pinyin grid + scrollable candidate bar, local-first with
- *    debounced online suggestions, 中/英 multitap and 数字/符号 page.
+ *  - KEYBOARD: one 9-key grid for Chinese (pinyin) and English (step-by-step
+ *    letter picking: press a key, pick a letter in the dropdown, press the
+ *    next key, pick a word), scrollable candidate bar, local-first with
+ *    debounced online suggestions, and a 数字/符号 page. The 1 key is a
+ *    punctuation key: ， in Chinese mode, . in English mode; digits come
+ *    from swiping up on a key (tap in integer fields).
  *  - VOICE: big mic button (hold-to-talk AND tap-toggle), live text in a
  *    popup window above the keyboard, Doubao streaming ASR, final text
- *    semantically corrected by the backend and committed once via
- *    commitText() (original text on backend failure/timeout). The
- *    bottom-right "修改" key shows a coming-soon toast (editing is not
- *    implemented yet).
+ *    semantically corrected by the backend. The popup stays until the user
+ *    taps the close button in the bottom row [键盘] [修改] [关闭]; the
+ *    green arrow commits the text (a long-press on it continues speaking),
+ *    and 修改 edits the popup text in place (a small window shows the
+ *    recognized instruction).
+ *
+ * Typing correction (v1.3.0): local first (legal-syllable segmentation,
+ * adjacent-key / single-edit correction, frequency ranking), then the AI
+ * typo check (/typo) as judge — only on a pause, only for suspicious
+ * input, results shown as AI-marked candidates, never forced.
  *
  * Interrupt safety: switching modes / finishing input stops recording first;
  * no-network / no-permission / recognition failures show a message and never
@@ -68,7 +80,7 @@ class VoiceImeService : InputMethodService() {
 
     private enum class Lang { ZH, EN }
     private enum class Mode { KEYBOARD, VOICE }
-    private enum class VoiceState { IDLE, RECORDING_HOLD, RECORDING_TAP, PROCESSING, AWAITING_COMMIT }
+    private enum class VoiceState { IDLE, RECORDING_HOLD, RECORDING_TAP, PROCESSING, AWAITING_COMMIT, COMMITTED }
 
     private lateinit var candidateBar: CandidateBar
     private lateinit var keyboard: T9KeyboardView
@@ -103,12 +115,44 @@ class VoiceImeService : InputMethodService() {
         }
     }
 
-    // English multitap state (2=abc, 3=def, ... cycling within a timeout).
     private val handler = Handler(Looper.getMainLooper())
-    private var tapKey = ' '
-    private var tapIndex = 0
-    private var tapLetter: String? = null
-    private val tapTimeout = Runnable { finalizeTap() }
+    private val bgExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    // English step-by-step state (v1.3.0): pressed keys + one locked letter
+    // per position. A locked letter is a choice the user tapped in the
+    // dropdown; deleting it unlocks that position again.
+    private val enKeys = StringBuilder()
+    private val enLocked = ArrayList<Char?>()
+    private var enResult: EnglishLexicon.EnglishResult? = null
+    private var englishLexicon: EnglishLexicon? = null
+    private var cloudLexicon: CloudLexicon? = null
+    // The segment committed by the last green-arrow tap (for replace-in-
+    // place when the user modifies it afterwards). -1 = nothing committed.
+    private var committedStart = -1
+    private var committedText = ""
+    // Text in the field before the popup's segment was appended (append
+    // mode): the popup text goes after this, never interleaved.
+    private var popupBaseText = ""
+    // AI typo check (v1.3.0): local first, AI as the judge. Debounced
+    // (500ms pause), one call per suspicion, never blocks typing; the AI
+    // result appears as a candidate, never a forced replacement.
+    private val typoCheck = Runnable { runTypoCheck() }
+    private var lastTypoSentence = ""
+    private var typoInFlight = false
+    // Generation: bumped on every new schedule; a late AI callback whose
+    // generation no longer matches is discarded (the user kept typing).
+    private var typoGen = 0
+    // Pending input snapshot at schedule time; the AI result is only shown
+    // if the input is unchanged when it comes back.
+    private var typoSnapshot = ""
+    // Last word committed (for the word-boundary semantic check).
+    private var lastCommittedWord = ""
+    private var lastCommitTimeMs = 0L
+    // Last semantic (word-boundary) AI check, for the cooldown.
+    private var lastSemanticCheckMs = 0L
+    // Small modify window (v1.3.0): the modify instruction is recognised in
+    // its own small popup above the keyboard, not in the main popup.
+    private var modifyWindow: PopupWindow? = null
+    private var modifyWindowText: TextView? = null
 
     // Online suggestions: debounced, 300ms drop deadline, never blocks typing.
     private val online = SogouSuggestions { d, words -> handler.post { onOnlineResult(d, words) } }
@@ -183,13 +227,25 @@ class VoiceImeService : InputMethodService() {
     private var popupText: TextView? = null
     private var popupScroll: ScrollView? = null
     private var popupStatus: TextView? = null
-    private val popupDismiss = Runnable { dismissVoicePopup() }
 
     override fun onCreate() {
         super.onCreate()
+        // Lexicon loading + indexing run on a background thread (v1.3.0):
+        // typing must never wait for the 6.8 MB lexicon or the cloud sync.
+        // Lookups simply return empty until the first prepare() finishes.
         val lexicon = Lexicon(this)
-        lexicon.prepare()
         candidateProvider = lexicon
+        bgExecutor.execute {
+            lexicon.prepare()
+            val english = EnglishLexicon(this)
+            english.prepare()
+            englishLexicon = english
+            // Cloud lexicon: fetch the manifest and build the cloud DB in
+            // the background; the built-in lexicon serves lookups meanwhile.
+            val cloud = CloudLexicon(this, lexicon, english)
+            cloudLexicon = cloud
+            cloud.sync { /* the cloud DB swaps in inside CloudLexicon */ }
+        }
         clipboardHistory = ClipboardHistory(this)
         getSystemService(ClipboardManager::class.java)
             ?.addPrimaryClipChangedListener(clipListener)
@@ -224,6 +280,7 @@ class VoiceImeService : InputMethodService() {
         candidateBar = CandidateBar(this)
         candidateBar.onTap = { c -> commitCandidate(c) }
         candidateBar.onSegmentationPick = { idx -> selectSegmentation(idx) }
+        candidateBar.onEnglishLetterPick = { ch -> selectEnglishLetter(ch) }
         val clipboardBtn = ImageButton(this).apply {
             setImageResource(R.drawable.ic_clipboard)
             background = null
@@ -270,12 +327,14 @@ class VoiceImeService : InputMethodService() {
                 when (voiceState) {
                     VoiceState.IDLE -> startRecording(hold = false)
                     VoiceState.RECORDING_TAP -> stopRecording()
-                    VoiceState.AWAITING_COMMIT -> commitPending()
+                    VoiceState.AWAITING_COMMIT, VoiceState.COMMITTED -> commitPopupText()
                     else -> Unit
                 }
             }
             onBackToKeyboard = { switchToKeyboard() }
             onModifyClick = { enterModifyMode() }
+            onCloseClick = { closeVoicePopup() }
+            onArrowLongPress = { continueSpeaking() }
         }
         root.addView(voiceView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
 
@@ -296,14 +355,15 @@ class VoiceImeService : InputMethodService() {
         settingsPanel = SettingsPanelView(this).apply {
             visibility = View.GONE
             onHeightChange = { dpValue -> applyT9Height(dpValue) }
-            onQwertyHeightChange = { dpValue -> applyQwertyHeight(dpValue) }
+            onKeySizeChange = { dpValue -> applyKeySize(dpValue) }
             onExportLearned = { exportLearned() }
             onOfflineDownload = { downloadOfflinePack() }
             onClose = { closeSettingsPanel() }
         }
         root.addView(settingsPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
         settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
-        settingsPanel.setQwertyHeightDp(keyboard.currentQwertyRowPitchDp())
+        settingsPanel.setKeySizeMaxDp(keyboard.maxKeyExtraDp())
+        settingsPanel.setKeySizeDp(keyboard.currentKeyExtraDp())
 
         return root
     }
@@ -321,11 +381,6 @@ class VoiceImeService : InputMethodService() {
         numericField = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE
         if (mode == Mode.VOICE) {
             resetVoiceUi()
-        } else if (::keyboard.isInitialized) {
-            if (numericField && lang == Lang.EN) {
-                keyboard.showMain(true)
-                resizeKeyboardToPage()
-            }
         }
     }
 
@@ -343,14 +398,16 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun resetInput() {
-        handler.removeCallbacks(tapTimeout)
         handler.removeCallbacks(onlineRequest)
+        handler.removeCallbacks(typoCheck)
         online.cancel()
-        tapLetter = null
         digits.clear()
+        enKeys.clear()
+        enLocked.clear()
+        enResult = null
         symbolsPage = false
         if (::keyboard.isInitialized) {
-            keyboard.showMainForLang(lang == Lang.ZH)
+            keyboard.showMain(lang == Lang.ZH)
             resizeKeyboardToPage()
             refreshCandidates()
         }
@@ -369,7 +426,7 @@ class VoiceImeService : InputMethodService() {
     private fun switchToVoice() {
         if (panelOpen) closeClipboardPanel()
         flushBuffer()
-        stopVoiceSession(salvage = true)
+        stopVoiceSession(salvage = true, keepPopup = true)
         mode = Mode.VOICE
         keyboard.visibility = View.GONE
         voiceView.visibility = View.VISIBLE
@@ -380,7 +437,7 @@ class VoiceImeService : InputMethodService() {
 
     private fun switchToKeyboard() {
         if (panelOpen) closeClipboardPanel()
-        stopVoiceSession(salvage = true)
+        stopVoiceSession(salvage = true, keepPopup = true)
         mode = Mode.KEYBOARD
         voiceView.visibility = View.GONE
         keyboard.visibility = View.VISIBLE
@@ -390,6 +447,16 @@ class VoiceImeService : InputMethodService() {
 
     private fun resetVoiceUi() {
         lastInterim = ""
+        // A popup holding text waiting for the arrow (or already committed)
+        // keeps its state across the mode switch; only the recording UI
+        // resets. The popup is dismissed by the close button, not here.
+        if (voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED) {
+            voiceView.recording = false
+            voiceView.holdMode = false
+            voiceView.setInterim("")
+            syncPopupState()
+            return
+        }
         committed = false
         voiceState = VoiceState.IDLE
         voiceView.setInterim("")
@@ -399,6 +466,9 @@ class VoiceImeService : InputMethodService() {
         modifyPending = false
         modifyPopupText = false
         pendingCommitText = null
+        committedStart = -1
+        committedText = ""
+        popupBaseText = ""
         voiceView.readyToCommit = false
         if (BuildConfig.DOUBAO_API_KEY.isEmpty()) {
             voiceView.micEnabled = false
@@ -407,6 +477,7 @@ class VoiceImeService : InputMethodService() {
             voiceView.micEnabled = true
             voiceView.setStatus(getString(R.string.voice_hint_idle))
         }
+        syncPopupState()
     }
 
     /** "修改" entry: the big mic button lights up and records, but what is
@@ -415,7 +486,11 @@ class VoiceImeService : InputMethodService() {
      * result stays in the popup until the green-arrow tap; otherwise it
      * modifies the field text (v1.2.2 behaviour). */
     private fun enterModifyMode() {
-        if (voiceState == VoiceState.AWAITING_COMMIT) {
+        // Popup-target modify: text waiting for the arrow, or already
+        // committed — the instruction edits the popup text; the result
+        // stays in the popup until the green-arrow tap replaces the
+        // previously committed segment.
+        if (voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED) {
             val pending = pendingCommitText
             if (pending.isNullOrBlank()) return
             if (!networkAvailable()) {
@@ -426,6 +501,7 @@ class VoiceImeService : InputMethodService() {
             modifyMode = true
             voiceView.readyToCommit = false
             voiceState = VoiceState.IDLE
+            showModifyWindow()
             startRecording(hold = false)
             return
         }
@@ -440,6 +516,7 @@ class VoiceImeService : InputMethodService() {
         }
         modifyPopupText = false
         modifyMode = true
+        showModifyWindow()
         startRecording(hold = false)
     }
 
@@ -540,7 +617,16 @@ class VoiceImeService : InputMethodService() {
                 handler.post {
                     if (id == sessionId) {
                         lastInterim = text
-                        setPopupText(text)
+                        if (modifyMode) {
+                            // The instruction shows in the small window, never
+                            // in the main popup, so a misrecognition is seen
+                            // at once.
+                            setModifyWindowText(text)
+                        } else {
+                            // Continue-speaking: the new interim appends to
+                            // the text already in the popup.
+                            setPopupText(popupBaseText + text)
+                        }
                     }
                 }
             }
@@ -641,7 +727,12 @@ class VoiceImeService : InputMethodService() {
         voiceView.micEnabled = false
         capture?.stop()
         capture = null
-        setPopupText(text)
+        // Continue-speaking: the final is only the new part; the popup
+        // (and the correction) see the whole text: base + new part.
+        // In modify mode the text is an instruction, never appended.
+        val fullText = if (modifyMode) text else popupBaseText + text
+        popupBaseText = ""
+        setPopupText(fullText)
         setPopupCorrecting(true)
         if (modifyMode) {
             voiceView.setStatus(getString(R.string.voice_editing))
@@ -668,19 +759,27 @@ class VoiceImeService : InputMethodService() {
         }
         voiceView.setStatus(getString(R.string.voice_correcting))
         if (text.isEmpty()) {
-            finishVoiceSession()
+            // Nothing new was said: the base text (if any) stays in the
+            // popup and waits for the arrow again.
+            if (fullText.isNotEmpty()) {
+                setPopupText(fullText)
+                pendingCommitText = fullText
+                enterAwaitingCommit()
+            } else {
+                finishVoiceSession()
+            }
             return
         }
         // Backend semantic correction (with the Settings cleaning template);
         // on any failure the original text waits in the popup instead. The
         // sessionId guard drops late callbacks after a mode switch / input
         // finish.
-        pendingOriginal = text
+        pendingOriginal = fullText
         val id = sessionId
         handler.removeCallbacks(correctionTimeout)
         handler.postDelayed(correctionTimeout, CORRECTION_TIMEOUT_MS)
-        corrector.correct(text, correctLevel()) { corrected ->
-            handler.post { if (id == sessionId) onCorrectionDone(text, corrected) }
+        corrector.correct(fullText, correctLevel()) { corrected ->
+            handler.post { if (id == sessionId) onCorrectionDone(fullText, corrected) }
         }
     }
 
@@ -690,6 +789,7 @@ class VoiceImeService : InputMethodService() {
         // Modify needs the backend; offline the instruction is discarded and
         // the original stays untouched.
         if (modifyMode) {
+            hideModifyWindow()
             if (modifyPopupText) {
                 modifyPopupText = false
                 setPopupText(pendingCommitText ?: "")
@@ -702,13 +802,22 @@ class VoiceImeService : InputMethodService() {
         voiceState = VoiceState.PROCESSING
         voiceView.recording = false
         voiceView.micEnabled = false
-        setPopupText(text)
+        // Continue-speaking: the decoded text is only the new part; the
+        // popup sees base + new part.
+        val fullText = popupBaseText + text
+        popupBaseText = ""
+        setPopupText(fullText)
         setPopupCorrecting(false)
         if (text.isEmpty()) {
-            finishVoiceSession()
+            if (fullText.isNotEmpty()) {
+                pendingCommitText = fullText
+                enterAwaitingCommit()
+            } else {
+                finishVoiceSession()
+            }
             return
         }
-        pendingCommitText = text
+        pendingCommitText = fullText
         enterAwaitingCommit()
     }
 
@@ -727,6 +836,7 @@ class VoiceImeService : InputMethodService() {
      *  (v1.2.2). On any failure the original stays untouched. */
     private fun onModifyDone(original: String, modified: String?) {
         handler.removeCallbacks(modifyTimeout)
+        hideModifyWindow()
         modifyPending = false
         if (modifyPopupText) {
             modifyPopupText = false
@@ -741,8 +851,15 @@ class VoiceImeService : InputMethodService() {
         }
         if (modified != null && modified != original) {
             if (replaceFieldText(modified)) {
+                // The whole field is now the modified text; the popup shows
+                // it and the arrow can replace it again (no duplicate).
                 setPopupText(modified)
+                pendingCommitText = modified
+                committedStart = 0
+                committedText = modified
                 committed = true
+                enterAwaitingCommit()
+                return
             }
         }
         finishVoiceSession()
@@ -765,27 +882,120 @@ class VoiceImeService : InputMethodService() {
         setPopupCorrecting(false)
         setPopupStatusText(getString(R.string.voice_ready_to_commit))
         voiceView.setStatus(getString(R.string.voice_ready_to_commit))
+        syncPopupState()
     }
 
     /** The pending text could not be modified (empty instruction / no
      *  original): put it back in the popup and keep waiting for the tap. */
     private fun restorePendingCommit() {
+        hideModifyWindow()
         modifyMode = false
         modifyPopupText = false
         setPopupText(pendingCommitText ?: "")
         enterAwaitingCommit()
     }
 
-    /** Green-arrow tap: the previewed text goes on screen, then the popup
-     *  goes and the session ends. */
-    private fun commitPending() {
-        if (voiceState != VoiceState.AWAITING_COMMIT) return
-        val text = pendingCommitText
-        pendingCommitText = null
-        voiceView.readyToCommit = false
-        if (!text.isNullOrEmpty()) commitOnce(text)
+    /**
+     * Green-arrow tap (v1.3.0): the popup text goes on screen AND THE POPUP
+     * STAYS, showing the just-committed text. Tapping again replaces the
+     * previously committed segment in place (never appends a second copy);
+     * the popup only goes away via the close button (or input finish /
+     * window hidden).
+     */
+    private fun commitPopupText() {
+        if (voiceState != VoiceState.AWAITING_COMMIT && voiceState != VoiceState.COMMITTED) return
+        val text = pendingCommitText ?: return
+        if (text.isEmpty()) return
+        val ic = currentInputConnection ?: return
+        var placed = false
+        if (committedStart >= 0 && committedText.isNotEmpty()) {
+            placed = replaceCommittedSegment(text)
+        }
+        if (!placed) {
+            // First commit (or the field moved under us): append at the
+            // cursor and remember where the segment went.
+            val beforeLen = ic.getTextBeforeCursor(100000, 0)?.length ?: 0
+            ic.commitText(text, 1)
+            committedStart = beforeLen
+            placed = true
+        }
+        if (placed) {
+            committedText = text
+            committed = true
+            voiceState = VoiceState.COMMITTED
+            voiceView.readyToCommit = true
+            voiceView.setStatus(getString(R.string.voice_ready_to_commit))
+            setPopupStatusText(getString(R.string.voice_ready_to_commit))
+            syncPopupState()
+        }
+    }
+
+    /**
+     * Replace the previously committed segment with the new popup text.
+     * Verifies the field still holds the old segment at the recorded
+     * position first; returns false (caller appends instead) if the field
+     * moved under us or the text is too long to position reliably.
+     */
+    private fun replaceCommittedSegment(newText: String): Boolean {
+        val ic = currentInputConnection ?: return false
+        val start = committedStart
+        if (start < 0 || committedText.isEmpty()) return false
+        val before = ic.getTextBeforeCursor(100000, 0)?.toString() ?: return false
+        if (before.length >= 100000) return false
+        val after = ic.getTextAfterCursor(100000, 0)?.toString() ?: ""
+        val fieldText = before + after
+        if (start + committedText.length > fieldText.length) return false
+        if (fieldText.substring(start, start + committedText.length) != committedText) return false
+        val cursor = before.length
+        val toDeleteBefore = cursor - start
+        if (toDeleteBefore < 0) return false
+        val toDeleteAfter = (start + committedText.length) - cursor
+        if (toDeleteAfter < 0) return false
+        ic.beginBatchEdit()
+        return try {
+            ic.deleteSurroundingText(toDeleteBefore, toDeleteAfter)
+            ic.commitText(newText, 1)
+            true
+        } catch (e: Exception) {
+            false
+        } finally {
+            ic.endBatchEdit()
+        }
+    }
+
+    /**
+     * Close-button enabled state follows the popup (v1.3.0): pressable only
+     * while the popup is showing AND the commit flow has started
+     * (AWAITING_COMMIT / COMMITTED); greyed out at all other times.
+     */
+    private fun syncPopupState() {
+        if (!::voiceView.isInitialized) return
+        val popupShowing = voicePopup?.isShowing == true
+        val inCommitFlow = voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED
+        voiceView.closeEnabled = popupShowing && inCommitFlow
+    }
+
+    /** Close button (bottom row, next to 修改): dismiss the popup and end
+     *  the session. Only reachable while closeEnabled; the popup itself
+     *  never dismisses on tap-away. */
+    private fun closeVoicePopup() {
+        if (!voiceView.closeEnabled) return
         dismissVoicePopup()
+        hideModifyWindow()
         finishVoiceSession()
+    }
+
+    /** Long-press the green arrow: keep talking. The new speech appends to
+     *  the text already in the popup; the next arrow tap commits the whole
+     *  popup text (replacing the previously committed segment). */
+    private fun continueSpeaking() {
+        if (voiceState != VoiceState.AWAITING_COMMIT && voiceState != VoiceState.COMMITTED) return
+        popupBaseText = popupText?.text?.toString().orEmpty()
+        voiceView.readyToCommit = false
+        voiceView.setStatus(getString(R.string.voice_hint_idle))
+        voiceState = VoiceState.IDLE
+        syncPopupState()
+        startRecording(hold = false)
     }
 
     /** Cleaning template from Settings (normal / medium / strong, default
@@ -796,18 +1006,32 @@ class VoiceImeService : InputMethodService() {
         return if (level in SettingsPanelView.CORRECT_LEVELS) level else "normal"
     }
 
-    /** Voice session finished: back to idle. */
+    /**
+     * Voice session finished: back to idle. The popup is NOT dismissed
+     * here: it stays until the close button (or a mode switch / input
+     * finish), so the user can re-read, modify, or re-commit the text.
+     */
     private fun finishVoiceSession() {
         handler.removeCallbacks(correctionTimeout)
         handler.removeCallbacks(modifyTimeout)
+        hideModifyWindow()
         modifyPending = false
         pendingOriginal = null
-        pendingCommitText = null
-        voiceView.readyToCommit = false
         offlineMode = false
         offlineChunks.clear()
         corrector.cancel()
         cleanupSession()
+        // Text waiting or already committed: keep the popup and its state;
+        // only the close button (or a mode switch) ends it.
+        if (voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED) {
+            syncPopupState()
+            return
+        }
+        pendingCommitText = null
+        committedStart = -1
+        committedText = ""
+        popupBaseText = ""
+        voiceView.readyToCommit = false
         voiceState = VoiceState.IDLE
         voiceView.recording = false
         voiceView.micEnabled = true
@@ -823,8 +1047,8 @@ class VoiceImeService : InputMethodService() {
             )
         )
         modifyMode = false
-        // Let the final text stay readable for a moment before the popup goes.
-        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
+        dismissVoicePopup()
+        syncPopupState()
     }
 
     private fun onAsrClosed() {
@@ -833,9 +1057,9 @@ class VoiceImeService : InputMethodService() {
         // commit. In modify mode the interim is an instruction, never text
         // to salvage.
         if (pendingOriginal != null || modifyPending) return
-        // Text waiting in the popup for the arrow tap: a late close must
-        // not tear it down.
-        if (voiceState == VoiceState.AWAITING_COMMIT) return
+        // Text waiting in the popup for the arrow tap, or already committed:
+        // a late close must not tear it down.
+        if (voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED) return
         handler.removeCallbacks(processingTimeout)
         // Connection dropped without a final packet: salvage the last interim.
         if (asrClient?.gotFinal != true && !modifyMode) commitOnce(lastInterim)
@@ -847,16 +1071,18 @@ class VoiceImeService : InputMethodService() {
         voiceView.setStatus(
             getString(if (committed) R.string.voice_done else R.string.voice_hint_idle)
         )
-        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
+        // The salvaged text is safely in the field; the popup goes.
+        dismissVoicePopup()
+        syncPopupState()
     }
 
     private fun failSession(message: String) {
         // Final text already received: a late ASR error must not discard it;
         // the correction / modify flow commits the original on its own failure.
         if (pendingOriginal != null || modifyPending) return
-        // Text waiting in the popup for the arrow tap: a late ASR error
-        // must not dismiss it.
-        if (voiceState == VoiceState.AWAITING_COMMIT) return
+        // Text waiting in the popup for the arrow tap, or already committed:
+        // a late ASR error must not dismiss it.
+        if (voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED) return
         handler.removeCallbacks(processingTimeout)
         sessionId++
         capture?.stop()
@@ -872,43 +1098,62 @@ class VoiceImeService : InputMethodService() {
         voiceView.readyToCommit = false
         voiceView.recording = false
         voiceView.micEnabled = true
-        // Keep what was heard visible in the popup for a moment; nothing is
-        // committed on failure.
+        // Nothing is committed on failure; the error shows on the voice view
+        // and the popup goes (there is no text to preserve).
         voiceView.setStatus(message, isError = true)
-        handler.postDelayed(popupDismiss, POPUP_LINGER_MS)
+        dismissVoicePopup()
+        syncPopupState()
     }
 
-    /** Mode switch / input finished: stop recording FIRST, then tear down. */
-    private fun stopVoiceSession(salvage: Boolean) {
+    /**
+     * Mode switch / input finished: stop recording FIRST, then tear down.
+     * @param keepPopup when true (keyboard <-> voice switch only), a popup
+     * holding text waiting for the arrow — or already committed — stays up
+     * with its state, so the user can come back and tap the arrow or the
+     * close button. Input finish / window hidden always dismisses it.
+     */
+    private fun stopVoiceSession(salvage: Boolean, keepPopup: Boolean = false) {
         handler.removeCallbacks(processingTimeout)
         handler.removeCallbacks(correctionTimeout)
         handler.removeCallbacks(modifyTimeout)
+        hideModifyWindow()
         modifyPending = false
         val wasModify = modifyMode
         modifyMode = false
         modifyPopupText = false
-        // Awaiting commit: the previewed text is abandoned, never salvaged;
-        // the user did not tap the arrow.
-        val wasAwaiting = voiceState == VoiceState.AWAITING_COMMIT
+        // Text waiting for the arrow, or already committed: it is never
+        // salvaged (the user did not tap the arrow).
+        val wasAwaiting = voiceState == VoiceState.AWAITING_COMMIT || voiceState == VoiceState.COMMITTED
         val wasActive = asrClient != null || voiceState != VoiceState.IDLE
         // Correction in flight: the final text beats the last interim, and
         // the late correction callback is dropped by the sessionId bump.
         // In modify mode nothing is salvaged: the interim is an instruction,
         // not text to commit.
         val salvageText = pendingOriginal ?: lastInterim
-        pendingOriginal = null
-        pendingCommitText = null
+        val keep = keepPopup && wasAwaiting
+        if (!keep) {
+            pendingOriginal = null
+            pendingCommitText = null
+            committedStart = -1
+            committedText = ""
+            popupBaseText = ""
+        }
         offlineMode = false
         offlineChunks.clear()
         corrector.cancel()
         sessionId++
         capture?.stop()
         capture = null
-        if (salvage && wasActive && !committed && !wasModify && !wasAwaiting && salvageText.isNotEmpty()) {
+        if (!keep && salvage && wasActive && !committed && !wasModify && !wasAwaiting && salvageText.isNotEmpty()) {
             commitOnce(salvageText)
         }
         asrClient?.cancel()
         asrClient = null
+        if (keep) {
+            // Popup and its state stay; only the recording/session stopped.
+            syncPopupState()
+            return
+        }
         voiceState = VoiceState.IDLE
         dismissVoicePopup()
         if (::voiceView.isInitialized) {
@@ -916,6 +1161,7 @@ class VoiceImeService : InputMethodService() {
             voiceView.readyToCommit = false
             voiceView.setInterim("")
         }
+        syncPopupState()
     }
 
     private fun cleanupSession() {
@@ -944,10 +1190,10 @@ class VoiceImeService : InputMethodService() {
     // ---- live-text popup ------------------------------------------------------
 
     private fun showVoicePopup() {
-        handler.removeCallbacks(popupDismiss)
         val existing = voicePopup
         if (existing != null && existing.isShowing) {
-            setPopupText("")
+            // Continue-speaking / modify from a waiting popup: keep the
+            // text already shown; the interim appends to it.
             setPopupCorrecting(false)
             return
         }
@@ -1046,12 +1292,68 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun dismissVoicePopup() {
-        handler.removeCallbacks(popupDismiss)
         voicePopup?.dismiss()
         voicePopup = null
         popupText = null
         popupScroll = null
         popupStatus = null
+    }
+
+    // Small window for the modify instruction (v1.3.0): while the user
+    // speaks the instruction, the recognized text shows here — never in
+    // the main popup — so a misrecognition is spotted immediately. Placed
+    // near the top of the screen, below the status bar, so it never
+    // overlaps the main popup above the keyboard.
+    private var modifyWindow: PopupWindow? = null
+    private var modifyWindowText: TextView? = null
+
+    private fun showModifyWindow() {
+        val existing = modifyWindow
+        if (existing != null && existing.isShowing) {
+            setModifyWindowText("")
+            return
+        }
+        val pad = dp(10f)
+        val text = TextView(this).apply {
+            textSize = 15f
+            setTextColor(getColor(R.color.key_text))
+            hint = getString(R.string.voice_edit_hint)
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12f).toFloat()
+                setColor(getColor(R.color.keyboard_bg))
+                setStroke(dp(1f), getColor(R.color.divider))
+            }
+            setPadding(pad, pad, pad, pad)
+            addView(text, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        }
+        val anchor = voiceView.rootView
+        val margin = dp(12f)
+        val statusBar = run {
+            val id = resources.getIdentifier("status_bar_height", "dimen", "android")
+            if (id > 0) resources.getDimensionPixelSize(id) else dp(24f)
+        }
+        val width = if (anchor.width > 0) anchor.width - 2 * margin else LinearLayout.LayoutParams.MATCH_PARENT
+        val popup = PopupWindow(content, width, LinearLayout.LayoutParams.WRAP_CONTENT)
+        popup.isFocusable = false
+        popup.isOutsideTouchable = false
+        modifyWindow = popup
+        modifyWindowText = text
+        setModifyWindowText("")
+        popup.showAtLocation(anchor, Gravity.TOP or Gravity.START, if (anchor.width > 0) margin else 0, statusBar + dp(8f))
+    }
+
+    private fun setModifyWindowText(text: String) {
+        modifyWindowText?.text = text
+        if (modifyWindow?.isShowing == true) modifyWindow?.update()
+    }
+
+    private fun hideModifyWindow() {
+        modifyWindow?.dismiss()
+        modifyWindow = null
+        modifyWindowText = null
     }
 
     // ---- clipboard panel ------------------------------------------------------
@@ -1090,7 +1392,8 @@ class VoiceImeService : InputMethodService() {
         clipboardPanel.visibility = View.GONE
         settingsPanel.visibility = View.VISIBLE
         settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
-        settingsPanel.setQwertyHeightDp(keyboard.currentQwertyRowPitchDp())
+        settingsPanel.setKeySizeMaxDp(keyboard.maxKeyExtraDp())
+        settingsPanel.setKeySizeDp(keyboard.currentKeyExtraDp())
         refreshOfflineStatus()
     }
 
@@ -1114,18 +1417,17 @@ class VoiceImeService : InputMethodService() {
     }
 
     /** Resize the keyboard view to the height of the page it is showing
-     *  (each page has its own height now: T9 5 x its pitch, QWERTY
-     *  4 x its pitch). Call after every page switch, or the window
-     *  keeps the old height. */
+     *  (the 9-key page is 5 x its pitch; the symbol page is its own
+     *  height). Call after every page switch, or the window keeps the
+     *  old height. */
     private fun resizeKeyboardToPage() {
         if (!::keyboard.isInitialized) return
         keyboard.layoutParams.height = keyboard.currentPanelHeightPx
         keyboard.requestLayout()
     }
 
-    /** T9 height tool: rebuild the 9-key page at the new pitch, then
-     *  resize every panel to the new formula height. The English page
-     *  keeps its own pitch (see applyQwertyHeight). */
+    /** T9 height tool (v1.3.0: the only keyboard): rebuild the 9-key page
+     *  at the new pitch, then resize every panel to the new formula height. */
     private fun applyT9Height(dpValue: Float) {
         keyboard.setRowPitchDp(dpValue)
         val h = keyboard.panelHeightPx
@@ -1134,16 +1436,19 @@ class VoiceImeService : InputMethodService() {
         clipboardPanel.layoutParams.height = h
         settingsPanel.layoutParams.height = h
         settingsPanel.setHeightDp(dpValue)
+        // The key-size max depends on the pitch; refresh it (and the
+        // label, in case the extra was clamped to the new max).
+        settingsPanel.setKeySizeMaxDp(keyboard.maxKeyExtraDp())
+        settingsPanel.setKeySizeDp(keyboard.currentKeyExtraDp())
         keyboard.requestLayout()
     }
 
-    /** English height tool: rebuild the QWERTY page at its own pitch.
-     *  The other panels keep the T9 height; only the keyboard view
-     *  height follows the English page while it is showing. */
-    private fun applyQwertyHeight(dpValue: Float) {
-        keyboard.setQwertyRowPitchDp(dpValue)
-        keyboard.layoutParams.height = keyboard.currentPanelHeightPx
-        settingsPanel.setQwertyHeightDp(dpValue)
+    /** Key-size tool (v1.3.0): keys grow, gaps shrink, total height never
+     *  changes. The panel's max follows the current pitch. */
+    private fun applyKeySize(dpValue: Float) {
+        keyboard.setKeyExtraDp(dpValue)
+        settingsPanel.setKeySizeDp(keyboard.currentKeyExtraDp())
+        settingsPanel.setKeySizeMaxDp(keyboard.maxKeyExtraDp())
         keyboard.requestLayout()
     }
 
@@ -1239,10 +1544,17 @@ class VoiceImeService : InputMethodService() {
             key == "space" -> onSpace()
             key == "enter" -> onEnter()
             key == "lang" -> {
+                // One 9-key keyboard for both languages (v1.3.0): the same
+                // keys, the same letter sublabels; only the candidate logic
+                // changes. Pending input is flushed first.
                 flushBuffer()
                 lang = if (lang == Lang.ZH) Lang.EN else Lang.ZH
-                keyboard.showMainForLang(lang == Lang.ZH)
+                enKeys.clear()
+                enLocked.clear()
+                enResult = null
+                keyboard.showMain(lang == Lang.ZH)
                 resizeKeyboardToPage()
+                refreshCandidates()
             }
             key == "sym" -> {
                 flushBuffer()
@@ -1252,7 +1564,7 @@ class VoiceImeService : InputMethodService() {
             }
             key == "back" -> {
                 symbolsPage = false
-                keyboard.showMainForLang(lang == Lang.ZH)
+                keyboard.showMain(lang == Lang.ZH)
                 resizeKeyboardToPage()
             }
             symbolsPage -> {
@@ -1261,28 +1573,24 @@ class VoiceImeService : InputMethodService() {
             }
             numericField && key.length == 1 && key[0] in '0'..'9' -> {
                 // Integer field: tap a key, the digit on it goes straight in.
-                finalizeTap()
                 flushBuffer()
                 commit(key)
             }
-            key == "shift" -> keyboard.toggleQwertyShift()
-            key.length == 1 && (key[0] in 'a'..'z' || key[0] in 'A'..'Z') -> {
-                // QWERTY letter: commit directly, no multitap cycling.
-                finalizeTap()
-                commit(key)
-                keyboard.consumeQwertyShiftIfOneShot()
-            }
-            lang == Lang.EN -> onEnglishKey(key)
             key == "1" -> {
                 flushBuffer()
-                commit("，")
+                // The 1 key is the punctuation key (v1.3.0): Chinese comma
+                // in ZH mode, a full stop in EN mode. The digit 1 itself
+                // comes from swiping up on the key.
+                commit(if (lang == Lang.EN) "." else "，")
             }
             key == "0" -> {
                 flushBuffer()
                 commit("0")
             }
             key.length == 1 && key[0] in '2'..'9' -> {
-                if (digits.length < MAX_DIGITS) {
+                if (lang == Lang.EN) {
+                    onEnglishDigit(key[0])
+                } else if (digits.length < MAX_DIGITS) {
                     digits.append(key)
                     refreshCandidates()
                 }
@@ -1292,16 +1600,24 @@ class VoiceImeService : InputMethodService() {
 
     /** Swipe up on a digit key inputs that digit directly, in any field. */
     private fun onDigitSwipeUp(digit: String) {
-        finalizeTap()
         flushBuffer()
         commit(digit)
     }
 
     private fun onDelete() {
-        if (tapLetter != null) {
-            handler.removeCallbacks(tapTimeout)
-            tapLetter = null
-            currentInputConnection?.setComposingText("", 1)
+        if (lang == Lang.EN && enKeys.isNotEmpty()) {
+            // English step-back (v1.3.0): delete undoes ONE position.
+            // A locked letter is unlocked first (so that position's letter
+            // can be chosen again); an unlocked position drops its key.
+            // The committed word text is untouched.
+            val last = enLocked.lastIndex
+            if (last >= 0 && enLocked[last] != null) {
+                enLocked[last] = null
+            } else {
+                enKeys.deleteCharAt(enKeys.length - 1)
+                if (last >= 0) enLocked.removeAt(last)
+            }
+            refreshCandidates()
             return
         }
         if (digits.isNotEmpty()) {
@@ -1316,7 +1632,7 @@ class VoiceImeService : InputMethodService() {
      *  period (Chinese 。 or English .). While pinyin is uncommitted, behave
      *  like a normal tap so committed text is never touched by accident. */
     private fun onDeleteLongPress() {
-        if (tapLetter != null || digits.isNotEmpty()) {
+        if (digits.isNotEmpty() || enKeys.isNotEmpty()) {
             onDelete()
             return
         }
@@ -1329,7 +1645,12 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun onSpace() {
-        finalizeTap()
+        if (lang == Lang.EN && enKeys.isNotEmpty()) {
+            // English: space commits the top word (with a trailing space,
+            // T9-style); undecodable input commits nothing.
+            commitEnglishWord()
+            return
+        }
         if (digits.isNotEmpty()) {
             commitFirstOrRaw()
         } else {
@@ -1338,12 +1659,11 @@ class VoiceImeService : InputMethodService() {
     }
 
     private fun onEnter() {
-        finalizeTap()
-        if (digits.isNotEmpty()) {
-            commit(digits.toString())
-            digits.clear()
-            refreshCandidates()
-            return
+        if (digits.isNotEmpty() || enKeys.isNotEmpty()) {
+            // Never commit raw digits (v1.3.0 no-digit rule): commit the top
+            // candidate if there is one, otherwise do nothing — the input
+            // stays pending for the user to pick or delete.
+            if (!commitFirstOrRaw()) return
         }
         val ic = currentInputConnection ?: return
         val action = (currentInputEditorInfo?.imeOptions ?: 0) and EditorInfo.IME_MASK_ACTION
@@ -1354,41 +1674,75 @@ class VoiceImeService : InputMethodService() {
         }
     }
 
-    // ---- English multitap ---------------------------------------------------
+    // ---- English 9-key (v1.3.0) --------------------------------------------
 
-    private fun onEnglishKey(key: String) {
-        if (key.length != 1) return
-        val ch = key[0]
-        if (ch == '0' || ch == '1') {
-            finalizeTap()
-            commit(key)
-            return
-        }
-        val letters = LETTER_GROUPS[ch] ?: return
-        handler.removeCallbacks(tapTimeout)
-        if (tapLetter != null && tapKey == ch) {
-            tapIndex = (tapIndex + 1) % letters.length
-        } else {
-            finalizeTap()
-            tapKey = ch
-            tapIndex = 0
-        }
-        val letter = letters[tapIndex].toString()
-        tapLetter = letter
-        currentInputConnection?.setComposingText(letter, 1)
-        handler.postDelayed(tapTimeout, TAP_TIMEOUT_MS)
+    /** Press a key: add one letter position. The dropdown then lists the
+     *  letters that position can be; the user taps one to lock it. */
+    private fun onEnglishDigit(digit: Char) {
+        if (enKeys.length >= MAX_DIGITS) return
+        enKeys.append(digit)
+        enLocked.add(null)
+        refreshCandidates()
     }
 
-    private fun finalizeTap() {
-        handler.removeCallbacks(tapTimeout)
-        val letter = tapLetter ?: return
-        tapLetter = null
-        currentInputConnection?.commitText(letter, 1)
+    /** Dropdown tap: lock the letter for the newest (unlocked) position. */
+    private fun selectEnglishLetter(letter: Char) {
+        if (enKeys.isEmpty()) return
+        val last = enLocked.lastIndex
+        if (last < 0 || enLocked[last] != null) return
+        enLocked[last] = letter.lowercaseChar()
+        refreshCandidates()
+    }
+
+    /** Commit the top English word (auto-space, T9-style). Returns false —
+     *  and commits nothing — when no word is available: undecodable input
+     *  never puts digits on screen. */
+    private fun commitEnglishWord(): Boolean {
+        val result = enResult
+        val word = result?.common?.firstOrNull() ?: result?.rare?.firstOrNull()
+        // No word candidate: fall back to the letters the user locked by
+        // hand in the dropdown -- those are certainly right. Nothing locked
+        // either: commit nothing (never digits).
+        val text = word ?: enLocked.filterNotNull().joinToString("").takeIf { it.isNotEmpty() } ?: return false
+        if (word != null) candidateProvider?.rememberTap(word)
+        commit(capitalizeEnglish(text) + " ")
+        lastCommittedWord = text
+        lastCommitTimeMs = System.currentTimeMillis()
+        enKeys.clear()
+        enLocked.clear()
+        enResult = null
+        refreshCandidates()
+        scheduleTypoCheck()
+        return true
+    }
+
+    /** Sentence-start auto-capitalization: the first letter is upper-case
+     *  at the start of the field, or right after ". " / "! " / "? ";
+     *  everywhere else the word stays lower-case. */
+    private fun capitalizeEnglish(word: String): String {
+        if (word.isEmpty()) return word
+        val before = currentInputConnection?.getTextBeforeCursor(10, 0)?.toString().orEmpty()
+        val trimmed = before.trimEnd()
+        val atStart = trimmed.isEmpty()
+        val afterTerminator = trimmed.isNotEmpty() && trimmed.last() in ".!?"
+        return if (atStart || afterTerminator) {
+            word.replaceFirstChar { it.uppercaseChar() }
+        } else {
+            word
+        }
     }
 
     // ---- candidates & committing --------------------------------------------
 
     private fun refreshCandidates() {
+        // The user is still typing: cancel any pending AI check and let the
+        // generation bump invalidate an in-flight AI request.
+        handler.removeCallbacks(typoCheck)
+        typoGen++
+        if (lang == Lang.EN) {
+            refreshEnglishCandidates()
+            return
+        }
         val d = digits.toString()
         segIndex = 0
         val result = if (d.isEmpty()) {
@@ -1404,6 +1758,201 @@ class VoiceImeService : InputMethodService() {
         if (d.isNotEmpty() && lang == Lang.ZH && !symbolsPage) {
             handler.postDelayed(onlineRequest, ONLINE_DEBOUNCE_MS)
         }
+        // Nothing matched: local correction on a background thread, and the
+        // AI typo check after a pause. Both are candidates, never forced.
+        if (d.isNotEmpty() && result.candidates.isEmpty()) {
+            scheduleLocalCorrectionZh(d)
+            scheduleTypoCheck()
+        }
+    }
+
+    /** English candidates (v1.3.0): letter-combination enumeration + word
+     *  utility (frequency tiers, learned first). Local adjacent-key
+     *  correction fills in when nothing matches; the AI check follows
+     *  after a pause. */
+    private fun refreshEnglishCandidates() {
+        val engine = englishLexicon
+        val d = enKeys.toString()
+        if (engine == null || d.isEmpty()) {
+            enResult = null
+            candidateBar.updateEnglish(null)
+            return
+        }
+        val learned = (candidateProvider as? Lexicon)?.learnedMap().orEmpty()
+        var result = engine.lookup(d, enLocked, learned)
+        var corrected = false
+        if (result.common.isEmpty() && result.rare.isEmpty()) {
+            // No good word: try one adjacent-key substitution (a slip of
+            // the finger). Only an unambiguous strong match is used.
+            val fix = engine.correctByAdjacentKey(d, enLocked, learned)
+            if (fix != null) {
+                val fixed = engine.lookup(fix.digits, fix.locked, learned)
+                if (fixed.common.isNotEmpty() || fixed.rare.isNotEmpty()) {
+                    result = fixed
+                    corrected = true
+                }
+            }
+        }
+        enResult = result
+        candidateBar.updateEnglish(result, enLocked.filterNotNull().joinToString(""), corrected)
+        if (result.common.isEmpty() && result.rare.isEmpty()) {
+            scheduleTypoCheck()
+        }
+    }
+
+    /** Chinese local correction on a background thread (v1.3.0): only for
+     *  input that cannot be spelled at all. The corrected candidates are
+     *  shown when they come back — but only if the user hasn't typed on. */
+    private fun scheduleLocalCorrectionZh(d: String) {
+        val lex = candidateProvider as? Lexicon ?: return
+        val before = currentInputConnection?.getTextBeforeCursor(20, 0)?.toString().orEmpty()
+        bgExecutor.execute {
+            val fix = try {
+                lex.suggestCorrection(d, before)
+            } catch (e: Exception) {
+                null
+            }
+            if (fix != null) {
+                handler.post {
+                    if (digits.toString() == d && lang == Lang.ZH) {
+                        candidateBar.update(
+                            fix.first,
+                            fix.second,
+                            emptyList(),
+                            0
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** Arm the AI typo check after a 500ms pause (debounced). The check
+     *  itself runs in runTypoCheck(); typing again cancels this schedule. */
+    private fun scheduleTypoCheck() {
+        typoSnapshot = if (lang == Lang.EN) enKeys.toString() else digits.toString()
+        typoGen++
+        handler.removeCallbacks(typoCheck)
+        handler.postDelayed(typoCheck, TYPO_DEBOUNCE_MS)
+    }
+
+    /**
+     * AI typo check (v1.3.0): the judge, not the typist. Runs only after a
+     * 500ms pause and only for suspicious input. Sends a small slice — the
+     * sentence around the suspect word — to the backend /typo endpoint
+     * (same token auth as /correct). The result appears as an AI-marked
+     * candidate; it never replaces anything by itself. Offline or on any
+     * failure: silent, local layer only.
+     *
+     * Two cases share this pipeline (the "word" just means something
+     * different): pinyin syllables / Chinese words / English words.
+     *  - Pending input: the suspect is what the user is typing now, and
+     *    only when the local layer already gave up (no candidates). A
+     *    legal syllable like hou vs hao is NEVER sent from here — it waits
+     *    for the word boundary, so "你后" is not corrected to "你好".
+     *  - Word boundary: no pending input, but a word was just committed.
+     *    The sentence + that word go to the AI, which judges whether the
+     *    word fits the sentence (a legal but semantically wrong word).
+     *    Restrained by a cooldown (one semantic check per 15s at most).
+     */
+    private fun runTypoCheck() {
+        typoInFlight = false
+        if (!networkAvailable()) return
+        val gen = typoGen
+        val pendingZh = lang == Lang.ZH && digits.isNotEmpty()
+        val pendingEn = lang == Lang.EN && enKeys.isNotEmpty()
+        val suspect: String
+        val digitsArg: String?
+        val mode: String
+        if (pendingZh) {
+            if (lastLocal.candidates.isNotEmpty()) return
+            suspect = candidateProvider?.pinyinFor(digits.toString()) ?: digits.toString()
+            digitsArg = digits.toString()
+            mode = "pinyin"
+        } else if (pendingEn) {
+            val r = enResult
+            if (r != null && (r.common.isNotEmpty() || r.rare.isNotEmpty())) return
+            val lockedLetters = enLocked.filterNotNull().joinToString("")
+            suspect = if (lockedLetters.isNotEmpty()) lockedLetters else enKeys.toString()
+            digitsArg = enKeys.toString()
+            mode = "english"
+        } else {
+            // Word boundary: the last committed word, if it was just typed
+            // and the sentence is long enough to judge.
+            if (lastCommittedWord.isEmpty()) return
+            if (System.currentTimeMillis() - lastCommitTimeMs > TYPO_WORD_WINDOW_MS) return
+            if (System.currentTimeMillis() - lastSemanticCheckMs < TYPO_SEMANTIC_COOLDOWN_MS) return
+            suspect = lastCommittedWord
+            digitsArg = null
+            mode = "word"
+            lastSemanticCheckMs = System.currentTimeMillis()
+        }
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(60, 0)?.toString().orEmpty()
+        val after = ic.getTextAfterCursor(30, 0)?.toString().orEmpty()
+        val sentence = before + after
+        if (sentence.isBlank()) return
+        lastTypoSentence = sentence
+        typoInFlight = true
+        corrector.correctTypo(sentence, suspect, digitsArg, mode) { correctedWord ->
+            handler.post {
+                typoInFlight = false
+                if (gen != typoGen) return@post  // user kept typing; stale
+                if (correctedWord.isNullOrBlank() || correctedWord == suspect) return@post
+                // Pending input must be unchanged, or the suggestion is stale.
+                if (pendingZh || pendingEn) {
+                    val current = if (lang == Lang.EN) enKeys.toString() else digits.toString()
+                    if (current != typoSnapshot) return@post
+                }
+                showAiCandidate(correctedWord, suspect)
+            }
+        }
+    }
+
+    /** Show an AI suggestion as a marked candidate in the bar. Tapping it
+     *  applies it (see applyAiCandidate); it never goes on screen alone. */
+    private fun showAiCandidate(correctedWord: String, suspect: String) {
+        val c = Candidate(word = correctedWord, isAi = true, aiOriginal = suspect)
+        candidateBar.addAiCandidate(c)
+    }
+
+    /** Apply an AI suggestion the user tapped. Pending input: the corrected
+     *  word commits like a normal candidate. Word boundary: the suspect
+     *  word in the field is replaced by the corrected word. */
+    private fun applyAiCandidate(c: Candidate) {
+        val corrected = c.word
+        val suspect = c.aiOriginal.orEmpty()
+        if (digits.isNotEmpty() || enKeys.isNotEmpty()) {
+            // Pending input: commit the corrected word, drop the mistyped input.
+            candidateProvider?.rememberTap(corrected)
+            if (lang == Lang.EN) {
+                commit(capitalizeEnglish(corrected) + " ")
+                enKeys.clear()
+                enLocked.clear()
+                enResult = null
+            } else {
+                commit(corrected)
+                digits.clear()
+            }
+            lastCommittedWord = corrected
+            lastCommitTimeMs = System.currentTimeMillis()
+            refreshCandidates()
+            return
+        }
+        // Word already in the field: replace the suspect word in place.
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(100, 0)?.toString().orEmpty()
+        val withSpace = suspect.isNotEmpty() && before.endsWith("$suspect ")
+        val plain = suspect.isNotEmpty() && before.endsWith(suspect)
+        if (!withSpace && !plain) return
+        val deleteLen = suspect.length + if (withSpace) 1 else 0
+        ic.deleteSurroundingText(deleteLen, 0)
+        val out = if (lang == Lang.EN) capitalizeEnglish(corrected) else corrected
+        commit(out + if (withSpace) " " else "")
+        candidateProvider?.rememberTap(corrected)
+        lastCommittedWord = corrected
+        lastCommitTimeMs = System.currentTimeMillis()
+        refreshCandidates()
     }
 
     /** Dropdown pick: apply the chosen segmentation and its words, and lock it in. */
@@ -1432,26 +1981,52 @@ class VoiceImeService : InputMethodService() {
         candidateBar.update(lastLocal.pinyin.ifEmpty { d }, merged, lastLocal.segmentations, segIndex)
     }
 
+    /** One entry point for every candidate tap (Chinese, English, AI).
+     *  AI suggestions go to applyAiCandidate; the rest commit normally. */
     private fun commitCandidate(c: Candidate) {
+        if (c.isAi) {
+            applyAiCandidate(c)
+            return
+        }
         candidateProvider?.rememberTap(c.word)
-        commit(c.word)
-        digits.clear()
+        if (lang == Lang.EN) {
+            commit(capitalizeEnglish(c.word) + " ")
+            enKeys.clear()
+            enLocked.clear()
+            enResult = null
+        } else {
+            commit(c.word)
+            digits.clear()
+        }
+        lastCommittedWord = c.word
+        lastCommitTimeMs = System.currentTimeMillis()
         refreshCandidates()
+        // Word boundary: after a pause the AI may judge the sentence.
+        scheduleTypoCheck()
     }
 
-    /** Commit the top candidate if there is one, otherwise the raw digits. */
-    private fun commitFirstOrRaw() {
+    /** Commit the top candidate if there is one. Returns false (and commits
+     *  nothing) when the input is undecodable — raw digits never go on
+     *  screen (v1.3.0 no-digit rule). */
+    private fun commitFirstOrRaw(): Boolean {
+        if (lang == Lang.EN) return commitEnglishWord()
         val d = digits.toString()
         // A user-chosen segmentation must not be overridden by the global top word.
         val first = if (segIndex > 0) lastLocal.candidates.firstOrNull()
         else candidateProvider?.lookup(d)?.candidates?.firstOrNull()
-        commit(first?.word ?: d)
+        if (first == null) return false
+        candidateProvider?.rememberTap(first.word)
+        commit(first.word)
+        lastCommittedWord = first.word
+        lastCommitTimeMs = System.currentTimeMillis()
         digits.clear()
         refreshCandidates()
+        scheduleTypoCheck()
+        return true
     }
 
     private fun flushBuffer() {
-        if (digits.isNotEmpty()) commitFirstOrRaw()
+        if (digits.isNotEmpty() || enKeys.isNotEmpty()) commitFirstOrRaw()
     }
 
     private fun commit(text: String) {
@@ -1459,16 +2034,16 @@ class VoiceImeService : InputMethodService() {
     }
 
     companion object {
-        private const val TAP_TIMEOUT_MS = 900L
         private const val MAX_DIGITS = 20
         private const val ONLINE_DEBOUNCE_MS = 100L
         private const val FINAL_TIMEOUT_MS = 8000L
         // Backstop just above the corrector's own 15s call timeout.
         private const val CORRECTION_TIMEOUT_MS = 16000L
-        private const val POPUP_LINGER_MS = 1500L
-        private val LETTER_GROUPS = mapOf(
-            '2' to "abc", '3' to "def", '4' to "ghi", '5' to "jkl",
-            '6' to "mno", '7' to "pqrs", '8' to "tuv", '9' to "wxyz"
-        )
+        // AI typo check: wait this long after the last keypress (a pause)
+        // before asking the AI; a word counts as "just committed" for this
+        // long; at most one word-boundary semantic check per cooldown.
+        private const val TYPO_DEBOUNCE_MS = 500L
+        private const val TYPO_WORD_WINDOW_MS = 3000L
+        private const val TYPO_SEMANTIC_COOLDOWN_MS = 15000L
     }
 }

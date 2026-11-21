@@ -1,0 +1,74 @@
+[
+  {
+    "variant": "lang_en",
+    "wav": "zh1.wav",
+    "reference": "今天天气怎么样，我们下午去公园散步吧。",
+    "hypothesis": "今天天气怎么样？我们下午去公园散步吧。",
+    "audio_duration_s": 3.58,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.304,
+    "error": null,
+    "id": "zh1",
+    "group": "zh"
+  },
+  {
+    "variant": "lang_en",
+    "wav": "en1.wav",
+    "reference": "The weather is nice today, let's go for a walk in the park this afternoon.",
+    "hypothesis": "The weather is nice today. Let's go for a walk in the park this afternoon.",
+    "audio_duration_s": 4.21,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.359,
+    "error": null,
+    "id": "en1",
+    "group": "en"
+  },
+  {
+    "variant": "lang_zh",
+    "wav": "zh1.wav",
+    "reference": "今天天气怎么样，我们下午去公园散步吧。",
+    "hypothesis": "今天天气怎么样？我们下午去公园散步吧。",
+    "audio_duration_s": 3.58,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.287,
+    "error": null,
+    "id": "zh1",
+    "group": "zh"
+  },
+  {
+    "variant": "lang_zh",
+    "wav": "en1.wav",
+    "reference": "The weather is nice today, let's go for a walk in the park this afternoon.",
+    "hypothesis": "The weather is nice today. Let's go for a walk in the park this afternoon.",
+    "audio_duration_s": 4.21,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.299,
+    "error": null,
+    "id": "en1",
+    "group": "en"
+  }
+]

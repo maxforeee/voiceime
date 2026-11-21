@@ -1,7 +1,15 @@
 package com.voiceime
 
-/** One candidate word shown in the candidate bar. */
-data class Candidate(val word: String, val pinyin: String = "")
+/** One candidate word shown in the candidate bar. [isAi] marks an AI
+ *  suggestion (from the /typo check): it appears with an "AI" tag and
+ *  never commits by itself — the user taps it to apply. [aiOriginal] is
+ *  the suspect word it would replace. */
+data class Candidate(
+    val word: String,
+    val pinyin: String = "",
+    val isAi: Boolean = false,
+    val aiOriginal: String? = null
+)
 
 /** One word the user has picked, with how often and when last used. */
 data class LearnedWord(val word: String, val count: Int, val lastUsed: Long)

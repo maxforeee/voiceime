@@ -1,0 +1,762 @@
+[
+  {
+    "variant": "base",
+    "wav": "zh1.wav",
+    "reference": "今天天气怎么样，我们下午去公园散步吧。",
+    "hypothesis": "今天天气怎么样？我们下午去公园散步吧。",
+    "audio_duration_s": 3.58,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.352,
+    "error": null,
+    "id": "zh1",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "zh2.wav",
+    "reference": "请帮我打开客厅的空调，温度调到二十六度。",
+    "hypothesis": "请帮我打开客厅的空调，温度调到二十六度。",
+    "audio_duration_s": 3.95,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 0.328,
+    "error": null,
+    "id": "zh2",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "zh3.wav",
+    "reference": "我明天早上九点要开会，记得提前提醒我。",
+    "hypothesis": "我明天早上九点要开会，记得提前提醒我。",
+    "audio_duration_s": 3.74,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.278,
+    "error": null,
+    "id": "zh3",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "zh4.wav",
+    "reference": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "hypothesis": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "audio_duration_s": 3.98,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 0.343,
+    "error": null,
+    "id": "zh4",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "zh5.wav",
+    "reference": "麻烦把刚才那段话翻译成英文发给小王。",
+    "hypothesis": "麻烦把刚才那段话翻译成英文发给小王。",
+    "audio_duration_s": 3.8,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.327,
+    "error": null,
+    "id": "zh5",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "zh6.wav",
+    "reference": "周末我想去超市买一些水果和牛奶。",
+    "hypothesis": "周末我想去超市买一些水果和牛奶。",
+    "audio_duration_s": 3.27,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 15,
+    "errors": [],
+    "tail_latency_s": 0.327,
+    "error": null,
+    "id": "zh6",
+    "group": "zh"
+  },
+  {
+    "variant": "base",
+    "wav": "en1.wav",
+    "reference": "The weather is nice today, let's go for a walk in the park this afternoon.",
+    "hypothesis": "The weather is nice today. Let's go for a walk in the park this afternoon.",
+    "audio_duration_s": 4.21,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.59,
+    "error": null,
+    "id": "en1",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "en2.wav",
+    "reference": "Please turn on the air conditioner in the living room and set it to twenty six degrees.",
+    "hypothesis": "Please turn on the air conditioner in the living room and set it to twenty six degrees.",
+    "audio_duration_s": 4.39,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 70,
+    "errors": [],
+    "tail_latency_s": 0.407,
+    "error": null,
+    "id": "en2",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "en3.wav",
+    "reference": "I have a meeting at nine tomorrow morning, please remind me in advance.",
+    "hypothesis": "I have a meeting at nine tomorrow morning. Please remind me in advance.",
+    "audio_duration_s": 4.17,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "p",
+        "hyp": "P"
+      }
+    ],
+    "tail_latency_s": 0.297,
+    "error": null,
+    "id": "en3",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "en4.wav",
+    "reference": "The food at this restaurant is really delicious, let's come again next time.",
+    "hypothesis": "The food at this restaurant is really delicious. Let's come again next time.",
+    "audio_duration_s": 4.29,
+    "cer": 0.0164,
+    "edit_distance": 1,
+    "ref_chars": 61,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.329,
+    "error": null,
+    "id": "en4",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "en5.wav",
+    "reference": "Please translate that message into English and send it to Xiao Wang.",
+    "hypothesis": "Please translate that message into english and send it to. Shall we?",
+    "audio_duration_s": 3.82,
+    "cer": 0.1429,
+    "edit_distance": 8,
+    "ref_chars": 56,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "E",
+        "hyp": "e"
+      },
+      {
+        "type": "sub",
+        "ref": "X",
+        "hyp": "S"
+      },
+      {
+        "type": "sub",
+        "ref": "i",
+        "hyp": "h"
+      },
+      {
+        "type": "del",
+        "ref": "o"
+      },
+      {
+        "type": "sub",
+        "ref": "W",
+        "hyp": "l"
+      },
+      {
+        "type": "sub",
+        "ref": "a",
+        "hyp": "l"
+      },
+      {
+        "type": "sub",
+        "ref": "n",
+        "hyp": "w"
+      },
+      {
+        "type": "sub",
+        "ref": "g",
+        "hyp": "e"
+      }
+    ],
+    "tail_latency_s": 0.369,
+    "error": null,
+    "id": "en5",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "en6.wav",
+    "reference": "I want to go to the supermarket this weekend to buy some fruit and milk.",
+    "hypothesis": "I want to go to the supermarket this weekend to buy some fruit and milk.",
+    "audio_duration_s": 3.66,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 57,
+    "errors": [],
+    "tail_latency_s": 0.325,
+    "error": null,
+    "id": "en6",
+    "group": "en"
+  },
+  {
+    "variant": "base",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.332,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "base",
+    "wav": "mix2.wav",
+    "reference": "帮我把空调调到 twenty six 度。",
+    "hypothesis": "帮我把空调调到 twenty six 度。",
+    "audio_duration_s": 2.82,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.296,
+    "error": null,
+    "id": "mix2",
+    "group": "mix",
+    "en_words": [
+      "twenty",
+      "six"
+    ],
+    "en_hits": [
+      "twenty",
+      "six"
+    ]
+  },
+  {
+    "variant": "base",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.284,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  },
+  {
+    "variant": "base",
+    "wav": "mix4.wav",
+    "reference": "这个 restaurant 的红烧肉特别好吃，下次还来。",
+    "hypothesis": "这个 restaurant 的红烧肉特别好吃，下次还来。",
+    "audio_duration_s": 4.01,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 24,
+    "errors": [],
+    "tail_latency_s": 0.345,
+    "error": null,
+    "id": "mix4",
+    "group": "mix",
+    "en_words": [
+      "restaurant"
+    ],
+    "en_hits": [
+      "restaurant"
+    ]
+  },
+  {
+    "variant": "base",
+    "wav": "mix5.wav",
+    "reference": "麻烦把这段话翻译成 English 发给小王。",
+    "hypothesis": "麻烦把这段话翻译成 english 发给小王。",
+    "audio_duration_s": 3.69,
+    "cer": 0.05,
+    "edit_distance": 1,
+    "ref_chars": 20,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "E",
+        "hyp": "e"
+      }
+    ],
+    "tail_latency_s": 0.338,
+    "error": null,
+    "id": "mix5",
+    "group": "mix",
+    "en_words": [
+      "English"
+    ],
+    "en_hits": [
+      "English"
+    ]
+  },
+  {
+    "variant": "base",
+    "wav": "mix6.wav",
+    "reference": "周末去 supermarket 买点水果和 milk。",
+    "hypothesis": "周末去 supermarket 买点水果和 milk。",
+    "audio_duration_s": 3.55,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 1.125,
+    "error": null,
+    "id": "mix6",
+    "group": "mix",
+    "en_words": [
+      "supermarket",
+      "milk"
+    ],
+    "en_hits": [
+      "supermarket",
+      "milk"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "zh1.wav",
+    "reference": "今天天气怎么样，我们下午去公园散步吧。",
+    "hypothesis": "今天天气怎么样？我们下午去公园散步吧。",
+    "audio_duration_s": 3.58,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.461,
+    "error": null,
+    "id": "zh1",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "zh2.wav",
+    "reference": "请帮我打开客厅的空调，温度调到二十六度。",
+    "hypothesis": "请帮我打开客厅的空调，温度调到二十六度。",
+    "audio_duration_s": 3.95,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 0.369,
+    "error": null,
+    "id": "zh2",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "zh3.wav",
+    "reference": "我明天早上九点要开会，记得提前提醒我。",
+    "hypothesis": "我明天早上九点要开会，记得提前提醒我。",
+    "audio_duration_s": 3.74,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.346,
+    "error": null,
+    "id": "zh3",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "zh4.wav",
+    "reference": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "hypothesis": "这家餐厅的红烧肉特别好吃，下次我们还来。",
+    "audio_duration_s": 3.98,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 18,
+    "errors": [],
+    "tail_latency_s": 0.385,
+    "error": null,
+    "id": "zh4",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "zh5.wav",
+    "reference": "麻烦把刚才那段话翻译成英文发给小王。",
+    "hypothesis": "麻烦把刚才那段话翻译成英文发给小王。",
+    "audio_duration_s": 3.8,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.768,
+    "error": null,
+    "id": "zh5",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "zh6.wav",
+    "reference": "周末我想去超市买一些水果和牛奶。",
+    "hypothesis": "周末我想去超市买一些水果和牛奶。",
+    "audio_duration_s": 3.27,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 15,
+    "errors": [],
+    "tail_latency_s": 1.86,
+    "error": null,
+    "id": "zh6",
+    "group": "zh"
+  },
+  {
+    "variant": "lid",
+    "wav": "en1.wav",
+    "reference": "The weather is nice today, let's go for a walk in the park this afternoon.",
+    "hypothesis": "The weather is nice today. Let's go for a walk in the park this afternoon.",
+    "audio_duration_s": 4.21,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.368,
+    "error": null,
+    "id": "en1",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "en2.wav",
+    "reference": "Please turn on the air conditioner in the living room and set it to twenty six degrees.",
+    "hypothesis": "Please turn on the air conditioner in the living room and set it to twenty six degrees.",
+    "audio_duration_s": 4.39,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 70,
+    "errors": [],
+    "tail_latency_s": 0.423,
+    "error": null,
+    "id": "en2",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "en3.wav",
+    "reference": "I have a meeting at nine tomorrow morning, please remind me in advance.",
+    "hypothesis": "I have a meeting at nine tomorrow morning. Please remind me in advance.",
+    "audio_duration_s": 4.17,
+    "cer": 0.0175,
+    "edit_distance": 1,
+    "ref_chars": 57,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "p",
+        "hyp": "P"
+      }
+    ],
+    "tail_latency_s": 0.43,
+    "error": null,
+    "id": "en3",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "en4.wav",
+    "reference": "The food at this restaurant is really delicious, let's come again next time.",
+    "hypothesis": "The food at this restaurant is really delicious. Let's come again next time.",
+    "audio_duration_s": 4.29,
+    "cer": 0.0164,
+    "edit_distance": 1,
+    "ref_chars": 61,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "l",
+        "hyp": "L"
+      }
+    ],
+    "tail_latency_s": 0.365,
+    "error": null,
+    "id": "en4",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "en5.wav",
+    "reference": "Please translate that message into English and send it to Xiao Wang.",
+    "hypothesis": "Please translate that message into english and send it to. Shall we?",
+    "audio_duration_s": 3.82,
+    "cer": 0.1429,
+    "edit_distance": 8,
+    "ref_chars": 56,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "E",
+        "hyp": "e"
+      },
+      {
+        "type": "sub",
+        "ref": "X",
+        "hyp": "S"
+      },
+      {
+        "type": "sub",
+        "ref": "i",
+        "hyp": "h"
+      },
+      {
+        "type": "del",
+        "ref": "o"
+      },
+      {
+        "type": "sub",
+        "ref": "W",
+        "hyp": "l"
+      },
+      {
+        "type": "sub",
+        "ref": "a",
+        "hyp": "l"
+      },
+      {
+        "type": "sub",
+        "ref": "n",
+        "hyp": "w"
+      },
+      {
+        "type": "sub",
+        "ref": "g",
+        "hyp": "e"
+      }
+    ],
+    "tail_latency_s": 0.34,
+    "error": null,
+    "id": "en5",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "en6.wav",
+    "reference": "I want to go to the supermarket this weekend to buy some fruit and milk.",
+    "hypothesis": "I want to go to the supermarket this weekend to buy some fruit and milk.",
+    "audio_duration_s": 3.66,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 57,
+    "errors": [],
+    "tail_latency_s": 0.392,
+    "error": null,
+    "id": "en6",
+    "group": "en"
+  },
+  {
+    "variant": "lid",
+    "wav": "mix1.wav",
+    "reference": "今天天气很好，我们下午去 park 散步吧。",
+    "hypothesis": "今天天气很好，我们下午去 part 散步吧。",
+    "audio_duration_s": 3.41,
+    "cer": 0.0556,
+    "edit_distance": 1,
+    "ref_chars": 18,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "k",
+        "hyp": "t"
+      }
+    ],
+    "tail_latency_s": 0.31,
+    "error": null,
+    "id": "mix1",
+    "group": "mix",
+    "en_words": [
+      "park"
+    ],
+    "en_hits": []
+  },
+  {
+    "variant": "lid",
+    "wav": "mix2.wav",
+    "reference": "帮我把空调调到 twenty six 度。",
+    "hypothesis": "帮我把空调调到 twenty six 度。",
+    "audio_duration_s": 2.82,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 17,
+    "errors": [],
+    "tail_latency_s": 0.372,
+    "error": null,
+    "id": "mix2",
+    "group": "mix",
+    "en_words": [
+      "twenty",
+      "six"
+    ],
+    "en_hits": [
+      "twenty",
+      "six"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "mix3.wav",
+    "reference": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "hypothesis": "明天早上 nine 点有个 meeting，记得提醒我。",
+    "audio_duration_s": 3.85,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.322,
+    "error": null,
+    "id": "mix3",
+    "group": "mix",
+    "en_words": [
+      "nine",
+      "meeting"
+    ],
+    "en_hits": [
+      "nine",
+      "meeting"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "mix4.wav",
+    "reference": "这个 restaurant 的红烧肉特别好吃，下次还来。",
+    "hypothesis": "这个 restaurant 的红烧肉特别好吃，下次还来。",
+    "audio_duration_s": 4.01,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 24,
+    "errors": [],
+    "tail_latency_s": 0.556,
+    "error": null,
+    "id": "mix4",
+    "group": "mix",
+    "en_words": [
+      "restaurant"
+    ],
+    "en_hits": [
+      "restaurant"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "mix5.wav",
+    "reference": "麻烦把这段话翻译成 English 发给小王。",
+    "hypothesis": "麻烦把这段话翻译成 english 发给小王。",
+    "audio_duration_s": 3.69,
+    "cer": 0.05,
+    "edit_distance": 1,
+    "ref_chars": 20,
+    "errors": [
+      {
+        "type": "sub",
+        "ref": "E",
+        "hyp": "e"
+      }
+    ],
+    "tail_latency_s": 0.384,
+    "error": null,
+    "id": "mix5",
+    "group": "mix",
+    "en_words": [
+      "English"
+    ],
+    "en_hits": [
+      "English"
+    ]
+  },
+  {
+    "variant": "lid",
+    "wav": "mix6.wav",
+    "reference": "周末去 supermarket 买点水果和 milk。",
+    "hypothesis": "周末去 supermarket 买点水果和 milk。",
+    "audio_duration_s": 3.55,
+    "cer": 0.0,
+    "edit_distance": 0,
+    "ref_chars": 23,
+    "errors": [],
+    "tail_latency_s": 0.467,
+    "error": null,
+    "id": "mix6",
+    "group": "mix",
+    "en_words": [
+      "supermarket",
+      "milk"
+    ],
+    "en_hits": [
+      "supermarket",
+      "milk"
+    ]
+  }
+]

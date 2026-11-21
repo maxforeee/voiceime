@@ -10,14 +10,15 @@ import com.voiceime.R
 
 /**
  * Settings panel: same container and height as the clipboard panel, but a
- * tools list instead of clipboard content. Tools: T9 height, QWERTY
- * height (independent sliders since v1.2.9), cleaning template
- * (voice-input correction only, not modify), export, offline voice pack.
+ * tools list instead of clipboard content. Tools: 9-key height, key size
+ * (v1.3.0: keys grow, gaps shrink, total height unchanged), cleaning
+ * template (voice-input correction only, not modify), export, offline
+ * voice pack.
  */
 class SettingsPanelView(context: Context) : LinearLayout(context) {
 
     var onHeightChange: ((Float) -> Unit)? = null
-    var onQwertyHeightChange: ((Float) -> Unit)? = null
+    var onKeySizeChange: ((Float) -> Unit)? = null
     var onExportLearned: (() -> Unit)? = null
     var onOfflineDownload: (() -> Unit)? = null
     var onClose: (() -> Unit)? = null
@@ -29,7 +30,8 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
     }
 
     private var heightDp = 62f
-    private var qwertyHeightDp = 48f
+    private var keySizeDp = 0f
+    private var keySizeMaxDp = 10f
 
     private var correctLevel: String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -40,7 +42,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         gravity = Gravity.CENTER
         setTextColor(context.getColor(R.color.key_text))
     }
-    private val qwertyValueLabel = TextView(context).apply {
+    private val keySizeValueLabel = TextView(context).apply {
         textSize = 15f
         gravity = Gravity.CENTER
         setTextColor(context.getColor(R.color.key_text))
@@ -105,27 +107,31 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             setMargins(context.dp(8f), context.dp(8f), context.dp(8f), context.dp(4f))
         })
 
-        val qwertyRow = LinearLayout(context).apply {
+        // Key size (v1.3.0): 1dp steps, keys grow, gaps shrink, total
+        // height unchanged. The max depends on the current row pitch
+        // (the visible gap never goes below 2dp); the service refreshes
+        // it whenever the panel opens or the height changes.
+        val keySizeRow = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(context.getColor(R.color.key_bg))
             setPadding(context.dp(14f), context.dp(12f), context.dp(14f), context.dp(12f))
         }
-        val qwertyLabel = TextView(context).apply {
-            text = context.getString(R.string.settings_height_qwerty)
+        val keySizeLabel = TextView(context).apply {
+            text = context.getString(R.string.settings_key_size)
             textSize = 16f
             setTextColor(context.getColor(R.color.key_text))
         }
-        qwertyRow.addView(qwertyLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        qwertyRow.addView(actionButton("\u2212") { changeQwertyHeight(-1f) },
+        keySizeRow.addView(keySizeLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        keySizeRow.addView(actionButton("\u2212") { changeKeySize(-1f) },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        qwertyRow.addView(qwertyValueLabel, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+        keySizeRow.addView(keySizeValueLabel, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             marginStart = context.dp(12f)
             marginEnd = context.dp(12f)
         })
-        qwertyRow.addView(actionButton("+") { changeQwertyHeight(1f) },
+        keySizeRow.addView(actionButton("+") { changeKeySize(1f) },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        body.addView(qwertyRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+        body.addView(keySizeRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
 
@@ -211,9 +217,15 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         valueLabel.text = "${dpValue.toInt()} dp"
     }
 
-    fun setQwertyHeightDp(dpValue: Float) {
-        qwertyHeightDp = dpValue
-        qwertyValueLabel.text = "${dpValue.toInt()} dp"
+    fun setKeySizeDp(dpValue: Float) {
+        keySizeDp = dpValue
+        keySizeValueLabel.text = "+${dpValue.toInt()} dp"
+    }
+
+    /** Max key size at the current pitch (from the keyboard view). */
+    fun setKeySizeMaxDp(dpValue: Float) {
+        keySizeMaxDp = dpValue.coerceAtLeast(0f)
+        if (keySizeDp > keySizeMaxDp) setKeySizeDp(keySizeMaxDp)
     }
 
     fun setOfflineStatusText(text: String) {
@@ -267,12 +279,11 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         onHeightChange?.invoke(next)
     }
 
-    private fun changeQwertyHeight(delta: Float) {
-        val next = (qwertyHeightDp + delta).coerceIn(
-            T9KeyboardView.MIN_ROW_PITCH_DP, T9KeyboardView.MAX_ROW_PITCH_DP)
-        if (next == qwertyHeightDp) return
-        setQwertyHeightDp(next)
-        onQwertyHeightChange?.invoke(next)
+    private fun changeKeySize(delta: Float) {
+        val next = (keySizeDp + delta).coerceIn(0f, keySizeMaxDp)
+        if (next == keySizeDp) return
+        setKeySizeDp(next)
+        onKeySizeChange?.invoke(next)
     }
 
     private fun actionButton(label: String, action: () -> Unit): TextView =

@@ -36,6 +36,7 @@ class SemanticCorrector {
         .build()
 
     private var pending: Call? = null
+    private var typoPending: Call? = null
 
     /** onResult is invoked exactly once, with the corrected text or null.
      *  level selects the backend cleaning template (normal / medium /
@@ -59,6 +60,55 @@ class SemanticCorrector {
         }
         val body = JSONObject().put("text", original).put("instruction", instruction).toString()
         post(MODIFY_URL, body, "modified", onResult)
+    }
+
+    /**
+     * Typo check (v1.3.0): judge one suspect word in its sentence context.
+     * [mode] is "pinyin" / "english" / "word" (pending pinyin, pending
+     * English, or a just-committed word). onResult is invoked exactly once,
+     * with the corrected word, or null when the word is fine / unsure / any
+     * failure. The caller shows the word as an AI candidate; it never
+     * replaces anything by itself. Runs on its own call so it never
+     * cancels a voice correction in flight (and vice versa).
+     */
+    fun correctTypo(text: String, suspect: String, digits: String?, mode: String, onResult: (correctedWord: String?) -> Unit) {
+        cancelTypo()
+        if (text.isEmpty() || suspect.isEmpty()) {
+            onResult(null)
+            return
+        }
+        val body = JSONObject().put("text", text).put("suspect", suspect).put("mode", mode)
+        if (digits != null) body.put("digits", digits)
+        postTypo(TYPO_URL, body.toString(), "word", onResult)
+    }
+
+    private fun postTypo(url: String, bodyJson: String, resultKey: String, onResult: (String?) -> Unit) {
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Correct-Token", BuildConfig.CORRECT_TOKEN)
+            .post(bodyJson.toRequestBody(JSON_TYPE))
+            .build()
+        val call = client.newCall(request)
+        typoPending = call
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Timeout / cancel / no network: caller stays local-only.
+                onResult(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val out = response.use { r ->
+                    if (!r.isSuccessful) return@use null
+                    parse(r.body?.string() ?: return@use null, resultKey)
+                }
+                onResult(out)
+            }
+        })
+    }
+
+    fun cancelTypo() {
+        typoPending?.cancel()
+        typoPending = null
     }
 
     private fun post(url: String, bodyJson: String, resultKey: String, onResult: (String?) -> Unit) {
@@ -88,6 +138,7 @@ class SemanticCorrector {
     fun cancel() {
         pending?.cancel()
         pending = null
+        cancelTypo()
     }
 
     private fun parse(body: String, key: String): String? {
@@ -103,6 +154,7 @@ class SemanticCorrector {
     companion object {
         private const val CORRECT_URL = "https://toolseverything.com:442/voiceime-correct/correct"
         private const val MODIFY_URL = "https://toolseverything.com:442/voiceime-correct/modify"
+        private const val TYPO_URL = "https://toolseverything.com:442/voiceime-correct/typo"
         private const val TIMEOUT_S = 15L
         private val JSON_TYPE = "application/json; charset=utf-8".toMediaType()
     }

@@ -25,6 +25,8 @@
     <string name="voice_correcting">修正中…</string>
     <string name="voice_ready_to_commit">已识别，点击绿色箭头上屏</string>
     <string name="voice_commit_desc">上屏</string>
+    <string name="voice_close">关闭</string>
+    <string name="voice_arrow_hint">点一下上屏 · 长按继续说</string>
 
     <string name="clipboard_desc">剪贴板</string>
     <string name="clipboard_title">剪贴板 · 最近 10 条</string>
@@ -34,7 +36,7 @@
     <string name="settings_desc">设置</string>
     <string name="settings_title">设置</string>
     <string name="settings_height_t9">九宫格高度</string>
-    <string name="settings_height_qwerty">英文键盘高度</string>
+    <string name="settings_key_size">按键大小</string>
     <string name="settings_level">提示词模板</string>
     <string name="settings_level_normal">一般</string>
     <string name="settings_level_medium">中等</string>
@@ -55,4 +57,7 @@
     <string name="settings_offline_download_btn">下载</string>
     <string name="settings_offline_failed">下载失败，请重试</string>
     <string name="settings_offline_no_space">存储空间不足，无法下载离线语音包</string>
+
+    <string name="candidate_corrected">已自动纠错</string>
+    <string name="candidate_rare_divider">— 不常用 —</string>
 </resources>

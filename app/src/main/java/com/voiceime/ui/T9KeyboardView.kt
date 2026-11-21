@@ -16,310 +16,379 @@ import android.widget.TextView
 import com.voiceime.R
 
 /**
- * T9 grid, built programmatically (no layout inflation, keeps popup fast).
- * Emits raw key codes; all input-state logic lives in VoiceImeService.
- *
- * Main page (5 rows):  1 / 2abc / 3def | 4ghi / 5jkl / 6mno | 7pqrs / 8tuv / 9wxyz
- *                      中/英 / 0 / ⌫ | 符号 / 空格 / 回车
- * Symbol page (6 rows): digits 1-9, ，0。, ？！…, 返回 / 空格 / 回车
- */
-class T9KeyboardView(context: Context) : LinearLayout(context) {
+* T9 grid, built programmatically (no layout inflation, keeps popup fast).
+* Emits raw key codes; all input-state logic lives in VoiceImeService.
+*
+* Main page (5 rows): 1 / 2abc / 3def | 4ghi / 5jkl / 6mno | 7pqrs / 8tuv / 9wxyz
+* 中/英 / 0 / ⌫ | 符号 / 空格 / 回车
+* Symbol page (5 rows): 4 rows x 6 symbol cells in a table grid (no button
+* frame, no digits - digits live on the 9-key page) +
+* 返回 / 空格 / 回车, same size as the main bottom row.
+*
+* Everything scales with the row pitch from Settings: key height, key gap,
+* main / small text sizes and the 9-key sublabel (0.65x main, relative) all
+* derive from one scale factor, so no key or label is ever left behind or
+* clipped at any height setting.
+*/
+class T9KeyboardView(context: Context): LinearLayout(context) {
 
-    var onKey: ((String) -> Unit)? = null
-    var onDeleteLongPress: (() -> Unit)? = null
+var onKey: ((String) -> Unit)? = null
+var onDeleteLongPress: (() -> Unit)? = null
 
-    /** Swipe up on a digit key: input that digit directly, no pinyin. */
-    var onDigitSwipeUp: ((String) -> Unit)? = null
+/** Swipe up on a digit key: input that digit directly, no pinyin. */
+var onDigitSwipeUp: ((String) -> Unit)? = null
 
-    // Visible key height. The row pitch adds the vertical gap (top + bottom
-    // key margins), so the panel height is rows x (keyHeight + keyGap).
-    private var keyHeight: Int
-    private var symbolKeyHeight: Int
-    private var showingSymbols = false
-    private var showingZh = true
-    private var showingQwerty = false
-    private var qwertyShift = false
-    private var qwertyCaps = false
-    private var lastShiftTapMs = 0L
-    private val gap = context.dp(4f)
-    private val keyGap = gap * 2
-    private val rowPitch: Int get() = keyHeight + keyGap
+// Row pitch (key height + vertical gap) in px, from Settings or auto.
+// Every size below derives from it, so the whole keyboard scales as one.
+private var pitchPx: Int
 
-    /** Fixed height of the 5-row T9 page, shared by the symbol / voice /
-     *  clipboard / settings panels: rows x (keyHeight + keyGap) plus
-     *  vertical padding. The 6 symbol rows fit it because
-     *  symbolKeyHeight = rowPitch * 5 / 6. */
-    val panelHeightPx: Int
-        get() = paddingTop + paddingBottom + 5 * rowPitch
+private var showingSymbols = false
+private var showingZh = true
+private var showingQwerty = false
+private var qwertyShift = false
+private var qwertyCaps = false
+private var lastShiftTapMs = 0L
 
-    /** Visible height of one QWERTY key: the old QWERTY key (5/4 of a T9
-     *  row pitch, minus the gap) scaled by QWERTY_KEY_SCALE. The vertical
-     *  gap stays the same 8dp as the T9 keys. */
-    private val qwertyKeyHeight: Int
-        get() = ((5 * rowPitch / 4 - keyGap) * QWERTY_KEY_SCALE).toInt()
-    private val qwertyRowPitch: Int get() = qwertyKeyHeight + keyGap
+/** Height scale vs the 62dp reference pitch (1.0 = the original sizes). */
+private val scale: Float
+get() = (pitchPx / resources.displayMetrics.density / BASE_ROW_PITCH_DP)
+.coerceIn(0.6f, 1.25f)
 
-    /** Height of the page currently shown: the 4-row QWERTY page is
-     *  shorter than the 5-row T9 page (4 x qwertyRowPitch vs 5 x
-     *  rowPitch); symbols keep the 5-row height. */
-    val currentPanelHeightPx: Int
-        get() = paddingTop + paddingBottom +
-            if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
+/** Key gap (all four sides): 4dp at reference pitch, scaled with it. */
+private val gapPx: Int
+get() = (context.dp(4f) * scale).toInt().coerceAtLeast(context.dp(2f))
+private val keyGap: Int get() = gapPx * 2
 
-    companion object {
-        private const val PREFS = "voiceime_prefs"
-        private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
-        const val MIN_ROW_PITCH_DP = 45f
-        const val MAX_ROW_PITCH_DP = 72f
-        /** QWERTY keys are 0.68x as tall as the old QWERTY keys (93px vs
-         *  137px on the same phone), matching the reference keyboard. */
-        private const val QWERTY_KEY_SCALE = 0.68f
-    }
+// Visible key height. The row pitch adds the vertical gap (top + bottom
+// key margins), so the panel height is rows x (keyHeight + keyGap).
+private val keyHeight: Int get() = pitchPx - keyGap
+private val rowPitch: Int get() = pitchPx
 
-    /** Current row pitch in dp, for the Settings panel label. */
-    fun currentRowPitchDp(): Float =
-        rowPitch / resources.displayMetrics.density
+/** Main key label size: 18sp at reference pitch, scaled with it. The
+* 9-key sublabel is 0.65x this (RelativeSizeSpan), so it shrinks with
+* the key and can never overflow the key at the lowest pitch (45dp:
+* main 13.1sp + sub 8.5sp fits a 39dp key with room to spare). */
+private val mainTextSizeSp: Float get() = 18f * scale
+/** Narrow bottom-row labels (lang / symbol on the QWERTY bottom row):
+* 15sp at reference pitch, scaled with it. */
+private val smallTextSizeSp: Float get() = 15f * scale
 
-    /** Apply a new row pitch from Settings: persist, rebuild the current
-     *  page with the new height. Panel height follows the formula, so the
-     *  service re-reads panelHeightPx after calling this. */
-    fun setRowPitchDp(dpValue: Float) {
-        val clamped = dpValue.coerceIn(MIN_ROW_PITCH_DP, MAX_ROW_PITCH_DP)
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putFloat(KEY_ROW_PITCH_DP, clamped).apply()
-        keyHeight = context.dp(clamped) - keyGap
-        symbolKeyHeight = rowPitch * 5 / 6
-        if (showingSymbols) showSymbols() else if (showingQwerty) showQwerty() else showMain(showingZh)
-    }
+/** Fixed height of the 5-row T9 page, shared by the symbol / voice /
+* clipboard / settings panels: rows x (keyHeight + keyGap) plus
+* vertical padding. */
+val panelHeightPx: Int
+get() = paddingTop + paddingBottom + 5 * rowPitch
 
-    init {
-        orientation = VERTICAL
-        setBackgroundColor(context.getColor(R.color.keyboard_bg))
-        setPadding(gap, context.dp(2f), gap, context.dp(4f))
-        val dm = resources.displayMetrics
-        val landscape = dm.widthPixels > dm.heightPixels
-        // Auto height: scale row pitch with the screen, clamped to sane
-        // touch sizes; the visible key takes the pitch minus the gap.
-        // A height saved in Settings overrides the auto value.
-        val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
-        val autoPitch = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
-        val savedPitch = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getFloat(KEY_ROW_PITCH_DP, -1f)
-        val pitch = if (savedPitch > 0f) context.dp(savedPitch) else autoPitch
-        keyHeight = pitch - keyGap
-        // 6 symbol rows must never exceed the 5-row main page's total height.
-        symbolKeyHeight = rowPitch * 5 / 6
-    }
+/** Visible height of one QWERTY key: QWERTY_KEY_RATIO of a T9 row pitch
+* (the reference keyboard's key/pitch ratio, 93px/117px), so the
+* English keys track the Settings height directly with no extra shrink.
+* The vertical gap is the same scaled gap as the T9 keys. */
+private val qwertyKeyHeight: Int
+get() = (rowPitch * QWERTY_KEY_RATIO).toInt()
+private val qwertyRowPitch: Int get() = qwertyKeyHeight + keyGap
 
-    /** Show the 9-key page for Chinese, the full QWERTY page for English. */
-    fun showMainForLang(zh: Boolean) {
-        if (zh) showMain(true) else showQwerty()
-    }
+/** Height of the page currently shown: the 4-row QWERTY page is
+* shorter than the 5-row T9 page (4 x qwertyRowPitch vs 5 x
+* rowPitch); symbols keep the 5-row height. */
+val currentPanelHeightPx: Int
+get() = paddingTop + paddingBottom +
+if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
 
-    fun showMain(zh: Boolean) {
-        removeAllViews()
-        showingSymbols = false
-        showingQwerty = false
-        showingZh = zh
-        val sub1 = if (zh) "，" else null
-        row(
-            digitKey("1", sub1), digitKey("2", "ABC"), digitKey("3", "DEF")
-        )
-        row(
-            digitKey("4", "GHI"), digitKey("5", "JKL"), digitKey("6", "MNO")
-        )
-        row(
-            digitKey("7", "PQRS"), digitKey("8", "TUV"), digitKey("9", "WXYZ")
-        )
-        row(
-            textKey(if (zh) "中/英" else "英/中", "lang", function = true),
-            digitKey("0", null),
-            textKey("⌫", "del", function = true)
-        )
-        row(
-            textKey("符号", "sym", function = true),
-            textKey("空格", "space"),
-            textKey("回车", "enter", function = true),
-            weights = floatArrayOf(1f, 2f, 1f)
-        )
-    }
+companion object {
+private const val PREFS = "voiceime_prefs"
+private const val KEY_ROW_PITCH_DP = "row_pitch_dp"
+const val MIN_ROW_PITCH_DP = 45f
+const val MAX_ROW_PITCH_DP = 72f
+/** Reference pitch: every size below is defined at 62dp and scaled
+* from it, so the keyboard keeps its proportions at any setting. */
+private const val BASE_ROW_PITCH_DP = 62f
+/** QWERTY key height as a fraction of the row pitch (reference
+* keyboard: 93px key on a 117px pitch). */
+private const val QWERTY_KEY_RATIO = 0.80f
+}
 
-    fun showSymbols() {
-        removeAllViews()
-        showingSymbols = true
-        showingQwerty = false
-        row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"), height = symbolKeyHeight)
-        row(textKey("4", "4"), textKey("5", "5"), textKey("6", "6"), height = symbolKeyHeight)
-        row(textKey("7", "7"), textKey("8", "8"), textKey("9", "9"), height = symbolKeyHeight)
-        row(textKey("，", "，"), textKey("0", "0"), textKey("。", "。"), height = symbolKeyHeight)
-        row(textKey("？", "？"), textKey("！", "！"), textKey("…", "…"), height = symbolKeyHeight)
-        row(
-            textKey("返回", "back", function = true),
-            textKey("空格", "space"),
-            textKey("回车", "enter", function = true),
-            height = symbolKeyHeight,
-            weights = floatArrayOf(1f, 2f, 1f)
-        )
-    }
+/** Current row pitch in dp, for the Settings panel label. */
+fun currentRowPitchDp(): Float =
+rowPitch / resources.displayMetrics.density
 
-    /** Full 26-key QWERTY for English (Chinese stays 9-key). Four shorter
-     *  rows: each key is QWERTY_KEY_SCALE as tall as the old QWERTY key,
-     *  so the whole panel is ~0.68x as tall and the window shrinks with it
-     *  (see currentPanelHeightPx). Gboard layout: 10 / 9 / 7 letters, then
-     *  the bottom row. Shift opens
-     *  the z row and delete closes it, both about two letter keys wide so
-     *  the row is not cramped; the bottom row is lang / symbol / space /
-     *  enter with uniform non-space widths. */
-    fun showQwerty() {
-        removeAllViews()
-        showingSymbols = false
-        showingQwerty = true
-        val upper = qwertyShift || qwertyCaps
-        val h = qwertyRowPitch
-        fun letter(ch: Char): TextView {
-            val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
-            return textKey(s, s)
-        }
-        row(*"qwertyuiop".map { letter(it) }.toTypedArray(), height = h)
-        row(
-            spacer(),
-            *"asdfghjkl".map { letter(it) }.toTypedArray(),
-            spacer(),
-            height = h,
-            weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
-        )
-        row(
-            textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
-            *"zxcvbnm".map { letter(it) }.toTypedArray(),
-            textKey("\u232B", "del", function = true),
-            height = h,
-            weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
-        )
-        row(
-            textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = 15f, singleLine = true),
-            textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = 15f, singleLine = true),
-            textKey("\u7A7A\u683C", "space"),
-            textKey("\u56DE\u8F66", "enter", function = true),
-            height = h,
-            weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
-        )
-    }
+/** Apply a new row pitch from Settings: persist, rebuild the current
+* page with the new height. Panel height follows the formula, so the
+* service re-reads panelHeightPx after calling this. */
+fun setRowPitchDp(dpValue: Float) {
+val clamped = dpValue.coerceIn(MIN_ROW_PITCH_DP, MAX_ROW_PITCH_DP)
+context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+.putFloat(KEY_ROW_PITCH_DP, clamped).apply()
+pitchPx = context.dp(clamped)
+if (showingSymbols) showSymbols() else if (showingQwerty) showQwerty() else showMain(showingZh)
+}
 
-    /** Shift: one tap = one-shot uppercase, second quick tap = caps lock,
-     *  tap while caps is on = back to lowercase. */
-    fun toggleQwertyShift() {
-        val now = SystemClock.uptimeMillis()
-        when {
-            qwertyCaps -> { qwertyCaps = false; qwertyShift = false }
-            qwertyShift && now - lastShiftTapMs < 400 -> { qwertyShift = false; qwertyCaps = true }
-            else -> qwertyShift = true
-        }
-        lastShiftTapMs = now
-        if (showingQwerty) showQwerty()
-    }
+init {
+orientation = VERTICAL
+setBackgroundColor(context.getColor(R.color.keyboard_bg))
+val dm = resources.displayMetrics
+val landscape = dm.widthPixels > dm.heightPixels
+// Auto height: scale row pitch with the screen, clamped to sane
+// touch sizes; the visible key takes the pitch minus the gap.
+// A height saved in Settings overrides the auto value.
+val target = if (landscape) dm.heightPixels * 0.085f else dm.heightPixels * 0.062f
+val autoPitch = target.toInt().coerceIn(context.dp(42f), context.dp(62f))
+val savedPitch = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+.getFloat(KEY_ROW_PITCH_DP, -1f)
+pitchPx = if (savedPitch > 0f) context.dp(savedPitch) else autoPitch
+setPadding(gapPx, context.dp(2f), gapPx, context.dp(4f))
+}
 
-    /** After a one-shot shifted letter is committed, drop back to lowercase. */
-    fun consumeQwertyShiftIfOneShot() {
-        if (qwertyShift && !qwertyCaps) {
-            qwertyShift = false
-            if (showingQwerty) showQwerty()
-        }
-    }
+/** Show the 9-key page for Chinese, the full QWERTY page for English. */
+fun showMainForLang(zh: Boolean) {
+if (zh) showMain(true) else showQwerty()
+}
 
-    /** Invisible spacer: takes width in a row without drawing anything. */
-    private fun spacer(): TextView =
-        TextView(context).apply { visibility = View.INVISIBLE }
+fun showMain(zh: Boolean) {
+removeAllViews()
+showingSymbols = false
+showingQwerty = false
+showingZh = zh
+val sub1 = if (zh) "，" else null
+row(
+digitKey("1", sub1), digitKey("2", "ABC"), digitKey("3", "DEF")
+)
+row(
+digitKey("4", "GHI"), digitKey("5", "JKL"), digitKey("6", "MNO")
+)
+row(
+digitKey("7", "PQRS"), digitKey("8", "TUV"), digitKey("9", "WXYZ")
+)
+row(
+textKey(if (zh) "中/英" else "英/中", "lang", function = true),
+digitKey("0", null),
+textKey("⌫", "del", function = true)
+)
+row(
+textKey("符号", "sym", function = true),
+textKey("空格", "space"),
+textKey("回车", "enter", function = true),
+weights = floatArrayOf(1f, 2f, 1f)
+)
+}
 
-    private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null) {
-        val row = LinearLayout(context).apply { orientation = HORIZONTAL }
-        for ((i, k) in keys.withIndex()) {
-            row.addView(
-                k,
-                LayoutParams(0, LayoutParams.MATCH_PARENT, weights?.getOrNull(i) ?: 1f).apply {
-                    setMargins(gap, gap, gap, gap)
-                }
-            )
-        }
-        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, height))
-    }
+/** Symbol page: 24 symbols in a 4 x 6 table grid (flat cells, no button
+* frame), then the bottom row at full row height with the same widths
+* as the main bottom row (返回 1 / 空格 2 / 回车 1). No digits: digits
+* live on the 9-key page (tap = pinyin, swipe up = digit). Symbol
+* cells use the same scaled text size and row pitch as every other
+* key, so they scale with the Settings height too. */
+fun showSymbols() {
+removeAllViews()
+showingSymbols = true
+showingQwerty = false
+gridRow(
+symbolCell("，"), symbolCell("。"), symbolCell("、"),
+symbolCell("；"), symbolCell("："), symbolCell("？")
+)
+gridRow(
+symbolCell("！"), symbolCell("“"), symbolCell("”"),
+symbolCell("‘"), symbolCell("’"), symbolCell("（")
+)
+gridRow(
+symbolCell("）"), symbolCell("《"), symbolCell("》"),
+symbolCell(""), symbolCell("·")
+)
+gridRow(
+symbolCell("…"), symbolCell("—"), symbolCell("～"),
+symbolCell("＠"), symbolCell("＃"), symbolCell("％")
+)
+row(
+textKey("返回", "back", function = true),
+textKey("空格", "space"),
+textKey("回车", "enter", function = true),
+weights = floatArrayOf(1f, 2f, 1f)
+)
+}
 
-    private fun digitKey(digit: String, letters: String?): TextView {
-        val label = if (letters == null) {
-            SpannableStringBuilder(digit)
-        } else {
-            SpannableStringBuilder("$digit\n$letters").apply {
-                setSpan(RelativeSizeSpan(0.65f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                // Follows the theme (light grey / dark grey) via key_text_secondary.
-                setSpan(
-                    ForegroundColorSpan(context.getColor(R.color.key_text_secondary)),
-                    digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-        }
-        return baseKey(label, digit)
-    }
+/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows,
+* each key QWERTY_KEY_RATIO of a T9 row pitch, so the whole panel
+* tracks the Settings height (see currentPanelHeightPx). Gboard
+* layout: 10 / 9 / 7 letters, then the bottom row. Shift opens
+* the z row and delete closes it, both about two letter keys wide so
+* the row is not cramped; the bottom row is lang / symbol / space /
+* enter with uniform non-space widths. */
+fun showQwerty() {
+removeAllViews()
+showingSymbols = false
+showingQwerty = true
+val upper = qwertyShift || qwertyCaps
+val h = qwertyRowPitch
+fun letter(ch: Char): TextView {
+val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
+return textKey(s, s)
+}
+row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h)
+row(
+spacer(),
+*"asdfghjkl".map { letter(it)}.toTypedArray(),
+spacer(),
+height = h,
+weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
+)
+row(
+textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
+*"zxcvbnm".map { letter(it)}.toTypedArray(),
+textKey("\u232B", "del", function = true),
+height = h,
+weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
+)
+row(
+textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
+textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
+textKey("\u7A7A\u683C", "space"),
+textKey("\u56DE\u8F66", "enter", function = true),
+height = h,
+weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
+)
+}
 
-    private fun textKey(label: String, code: String, function: Boolean = false, textSizeSp: Float = 18f, singleLine: Boolean = false): TextView =
-        baseKey(label, code, function, textSizeSp, singleLine)
+/** Shift: one tap = one-shot uppercase, second quick tap = caps lock,
+* tap while caps is on = back to lowercase. */
+fun toggleQwertyShift() {
+val now = SystemClock.uptimeMillis()
+when {
+qwertyCaps -> { qwertyCaps = false; qwertyShift = false}
+qwertyShift && now - lastShiftTapMs < 400 -> { qwertyShift = false; qwertyCaps = true}
+else -> qwertyShift = true
+}
+lastShiftTapMs = now
+if (showingQwerty) showQwerty()
+}
 
-    private fun baseKey(label: CharSequence, code: String, function: Boolean = false, textSizeSp: Float = 18f, singleLine: Boolean = false): TextView {
-        val tv = TextView(context)
-        tv.gravity = Gravity.CENTER
-        tv.text = label
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp)
-        // Narrow function labels (e.g. lang / symbol on the QWERTY bottom
-        // row) must stay on one line instead of wrapping into two.
-        if (singleLine) tv.maxLines = 1
-        tv.setTextColor(context.getColor(R.color.key_text))
-        tv.background = keyBackground(context, function)
-        tv.isClickable = true
-        tv.isHapticFeedbackEnabled = true
-        // Press effect: the key shrinks slightly while held and springs back
-        // on release. No popup preview (removed at the user's request).
-        // Returning false keeps the TextView's own press/click handling intact.
-        var longPressed = false
-        var swipedUp = false
-        var downY = 0f
-        tv.setOnTouchListener { v, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downY = event.y
-                    swipedUp = false
-                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    v.scaleX = 0.95f
-                    v.scaleY = 0.95f
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.scaleX = 1f
-                    v.scaleY = 1f
-                    // Swipe up on a digit key inputs that digit directly.
-                    if (event.actionMasked == MotionEvent.ACTION_UP &&
-                        code.length == 1 && code[0] in '0'..'9' &&
-                        downY - event.y > context.dp(24f)
-                    ) {
-                        swipedUp = true
-                        onDigitSwipeUp?.invoke(code)
-                    }
-                }
-            }
-            false
-        }
-        if (code == "del") {
-            tv.setOnLongClickListener {
-                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                onDeleteLongPress?.invoke()
-                longPressed = true
-                true
-            }
-        }
-        tv.setOnClickListener {
-            // A long-press already handled this tap; skip the extra delete.
-            // A swipe-up already committed the digit; skip the pinyin tap.
-            if (longPressed) longPressed = false
-            else if (swipedUp) swipedUp = false
-            else onKey?.invoke(code)
-        }
-        return tv
-    }
+/** After a one-shot shifted letter is committed, drop back to lowercase. */
+fun consumeQwertyShiftIfOneShot() {
+if (qwertyShift &&!qwertyCaps) {
+qwertyShift = false
+if (showingQwerty) showQwerty()
+}
+}
+
+/** Invisible spacer: takes width in a row without drawing anything. */
+private fun spacer(): TextView =
+TextView(context).apply { visibility = View.INVISIBLE}
+
+private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null) {
+val row = LinearLayout(context).apply { orientation = HORIZONTAL}
+for ((i, k) in keys.withIndex()) {
+row.addView(
+k,
+LayoutParams(0, LayoutParams.MATCH_PARENT, weights?.getOrNull(i)?: 1f).apply {
+setMargins(gapPx, gapPx, gapPx, gapPx)
+}
+)
+}
+addView(row, LayoutParams(LayoutParams.MATCH_PARENT, height))
+}
+
+/** One row of the symbol grid: hairline gaps over the divider-coloured
+* row background read as table lines; cells carry no button frame. */
+private fun gridRow(vararg keys: TextView, height: Int = rowPitch) {
+val row = LinearLayout(context).apply {
+orientation = HORIZONTAL
+setBackgroundColor(context.getColor(R.color.divider))
+}
+for (k in keys) {
+row.addView(
+k,
+LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
+setMargins(1, 1, 1, 1)
+}
+)
+}
+addView(row, LayoutParams(LayoutParams.MATCH_PARENT, height))
+}
+
+/** One symbol cell: flat cell background (no button frame, no press
+* shrink), same scaled text size as every other key. */
+private fun symbolCell(symbol: String): TextView =
+baseKey(symbol, symbol, cell = true, pressScale = false)
+
+private fun digitKey(digit: String, letters: String?): TextView {
+val label = if (letters == null) {
+SpannableStringBuilder(digit)
+} else {
+SpannableStringBuilder("$digit\n$letters").apply {
+setSpan(RelativeSizeSpan(0.65f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+// Follows the theme (light grey / dark grey) via key_text_secondary.
+setSpan(
+ForegroundColorSpan(context.getColor(R.color.key_text_secondary)),
+digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+)
+}
+}
+return baseKey(label, digit)
+}
+
+private fun textKey(label: String, code: String, function: Boolean = false, textSizeSp: Float? = null, singleLine: Boolean = false): TextView =
+baseKey(label, code, function, textSizeSp, singleLine)
+
+private fun baseKey(label: CharSequence, code: String, function: Boolean = false, textSizeSp: Float? = null, singleLine: Boolean = false, cell: Boolean = false, pressScale: Boolean = true): TextView {
+val tv = TextView(context)
+tv.gravity = Gravity.CENTER
+tv.text = label
+tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp?: mainTextSizeSp)
+// Narrow function labels (e.g. lang / symbol on the QWERTY bottom
+// row) must stay on one line instead of wrapping into two.
+if (singleLine) tv.maxLines = 1
+tv.setTextColor(context.getColor(R.color.key_text))
+tv.background = if (cell) cellBackground(context) else keyBackground(context, function)
+tv.isClickable = true
+tv.isHapticFeedbackEnabled = true
+// Press effect: the key shrinks slightly while held and springs back
+// on release. No popup preview (removed at the user's request).
+// Returning false keeps the TextView's own press/click handling intact.
+var longPressed = false
+var swipedUp = false
+var downY = 0f
+tv.setOnTouchListener { v, event ->
+when (event.actionMasked) {
+MotionEvent.ACTION_DOWN -> {
+downY = event.y
+swipedUp = false
+v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+if (pressScale) {
+v.scaleX = 0.95f
+v.scaleY = 0.95f
+}
+}
+MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+if (pressScale) {
+v.scaleX = 1f
+v.scaleY = 1f
+}
+// Swipe up on a digit key inputs that digit directly.
+if (event.actionMasked == MotionEvent.ACTION_UP &&
+code.length == 1 && code[0] in '0'..'9' &&
+downY - event.y > context.dp(24f)
+) {
+swipedUp = true
+onDigitSwipeUp?.invoke(code)
+}
+}
+}
+false
+}
+if (code == "del") {
+tv.setOnLongClickListener {
+it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+onDeleteLongPress?.invoke()
+longPressed = true
+true
+}
+}
+tv.setOnClickListener {
+// A long-press already handled this tap; skip the extra delete.
+// A swipe-up already committed the digit; skip the pinyin tap.
+if (longPressed) longPressed = false
+else if (swipedUp) swipedUp = false
+else onKey?.invoke(code)
+}
+return tv
+}
 
 }

@@ -23,6 +23,8 @@
     <string name="voice_editing">按要求修改中…</string>
     <string name="voice_edit_done">已替换</string>
     <string name="voice_correcting">修正中…</string>
+    <string name="voice_ready_to_commit">已识别，点击绿色箭头上屏</string>
+    <string name="voice_commit_desc">上屏</string>
 
     <string name="clipboard_desc">剪贴板</string>
     <string name="clipboard_title">剪贴板 · 最近 10 条</string>
@@ -32,6 +34,10 @@
     <string name="settings_desc">设置</string>
     <string name="settings_title">设置</string>
     <string name="settings_height">键盘高度</string>
+    <string name="settings_level">提示词模板</string>
+    <string name="settings_level_normal">一般</string>
+    <string name="settings_level_medium">中等</string>
+    <string name="settings_level_strong">强力</string>
     <string name="settings_export">导出词库</string>
     <string name="settings_export_btn">导出</string>
     <string name="settings_export_empty">暂无学习记录可导出</string>

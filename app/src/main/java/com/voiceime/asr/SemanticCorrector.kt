@@ -37,14 +37,16 @@ class SemanticCorrector {
 
     private var pending: Call? = null
 
-    /** onResult is invoked exactly once, with the corrected text or null. */
-    fun correct(text: String, onResult: (corrected: String?) -> Unit) {
+    /** onResult is invoked exactly once, with the corrected text or null.
+     *  level selects the backend cleaning template (normal / medium /
+     *  strong); modify() is unaffected by it. */
+    fun correct(text: String, level: String, onResult: (corrected: String?) -> Unit) {
         cancel()
         if (text.isEmpty()) {
             onResult(null)
             return
         }
-        val body = JSONObject().put("text", text).toString()
+        val body = JSONObject().put("text", text).put("level", level).toString()
         post(CORRECT_URL, body, "corrected", onResult)
     }
 

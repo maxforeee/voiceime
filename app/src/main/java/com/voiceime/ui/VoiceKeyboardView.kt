@@ -43,7 +43,16 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
     var recording = false
         set(value) {
             field = value
-            updateMicColor()
+            updateMicAppearance()
+        }
+
+    /** Set by the service when cleaned text waits in the popup for the
+     *  green-arrow tap: the mic becomes a green up-arrow (commit), not a
+     *  record control. Takes precedence over the recording colour. */
+    var readyToCommit = false
+        set(value) {
+            field = value
+            updateMicAppearance()
         }
     var holdMode = false
 
@@ -132,11 +141,20 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
         interimText.text = text
     }
 
-    private fun updateMicColor() {
-        val color = if (recording) context.getColor(R.color.voice_listening)
-        else context.getColor(R.color.accent)
+    private fun updateMicAppearance() {
+        val color = when {
+            readyToCommit -> context.getColor(R.color.voice_commit)
+            recording -> context.getColor(R.color.voice_listening)
+            else -> context.getColor(R.color.accent)
+        }
         micButton.background = oval(color)
-        // The mic glyph sits on the accent oval: white-on-blue in light mode,
+        micButton.setImageResource(
+            if (readyToCommit) R.drawable.ic_arrow_up else R.drawable.ic_mic_white
+        )
+        micButton.contentDescription =
+            if (readyToCommit) context.getString(R.string.voice_commit_desc)
+            else context.getString(R.string.mic_desc)
+        // The glyph sits on the oval: white-on-blue in light mode,
         // dark-on-light-blue in dark mode (white on #8AB4F8 is too weak).
         micButton.imageTintList =
             ColorStateList.valueOf(context.getColor(R.color.on_accent))
@@ -153,6 +171,8 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
                 if (!micEnabled) return true
                 // While tap-recording, the UP of this press is the stop tap.
                 if (recording) return true
+                // Green arrow: consume the press, never arm hold-recording.
+                if (readyToCommit) return true
                 downPending = true
                 handler.postDelayed({
                     if (downPending) {
@@ -167,6 +187,11 @@ class VoiceKeyboardView(context: Context) : LinearLayout(context) {
                 handler.removeCallbacksAndMessages(null)
                 val wasPending = downPending
                 downPending = false
+                if (readyToCommit) {
+                    // Green arrow: this tap commits the previewed text.
+                    onTap?.invoke()
+                    return true
+                }
                 if (holdActive) {
                     holdActive = false
                     onHoldEnd?.invoke()

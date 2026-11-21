@@ -22,3 +22,14 @@ fun keyBackground(ctx: Context, function: Boolean): StateListDrawable {
         addState(intArrayOf(), shape(normalColor))
     }
 }
+
+/** Flat table-cell background: no rounding, no button frame. The grid row
+ *  behind the cells is the divider colour, so the 1px cell margins read
+ *  as table lines. Pressed state is a flat colour change. */
+fun cellBackground(ctx: Context): StateListDrawable {
+    fun shape(color: Int) = GradientDrawable().apply { setColor(color) }
+    return StateListDrawable().apply {
+        addState(intArrayOf(android.R.attr.state_pressed), shape(ctx.getColor(R.color.key_bg_pressed)))
+        addState(intArrayOf(), shape(ctx.getColor(R.color.key_bg)))
+    }
+}

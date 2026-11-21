@@ -67,7 +67,7 @@ class VoiceImeService : InputMethodService() {
 
     private enum class Lang { ZH, EN }
     private enum class Mode { KEYBOARD, VOICE }
-    private enum class VoiceState { IDLE, RECORDING_HOLD, RECORDING_TAP, PROCESSING }
+    private enum class VoiceState { IDLE, RECORDING_HOLD, RECORDING_TAP, PROCESSING, AWAITING_COMMIT }
 
     private lateinit var candidateBar: CandidateBar
     private lateinit var keyboard: T9KeyboardView
@@ -144,9 +144,13 @@ class VoiceImeService : InputMethodService() {
     private val corrector = SemanticCorrector()
     private var pendingOriginal: String? = null
     private val correctionTimeout = Runnable {
+        // Correction gave up: the original waits in the popup for the
+        // green-arrow tap instead of going on screen by itself.
         val original = pendingOriginal ?: return@Runnable
-        commitOnce(original)
-        finishVoiceSession()
+        pendingOriginal = null
+        setPopupText(original)
+        pendingCommitText = original
+        enterAwaitingCommit()
     }
 
     // Voice modify mode: the spoken text is an instruction for the backend,
@@ -154,9 +158,22 @@ class VoiceImeService : InputMethodService() {
     // field content; on any failure the original stays untouched.
     private var modifyMode = false
     private var modifyPending = false
+    // Text already cleaned (or modified) and shown in the popup, waiting for
+    // the green-arrow tap to go on screen. Nothing commits by itself.
+    private var pendingCommitText: String? = null
+    // The current modify round targets the popup text, not the field.
+    private var modifyPopupText = false
     private val modifyTimeout = Runnable {
         modifyPending = false
-        finishVoiceSession()
+        if (modifyPopupText) {
+            // Modify gave up: the pending text stays in the popup, still
+            // waiting for the green-arrow tap.
+            modifyPopupText = false
+            setPopupText(pendingCommitText ?: "")
+            enterAwaitingCommit()
+        } else {
+            finishVoiceSession()
+        }
     }
 
     // Live-text popup: a separate window above the keyboard, so the fixed
@@ -252,6 +269,7 @@ class VoiceImeService : InputMethodService() {
                 when (voiceState) {
                     VoiceState.IDLE -> startRecording(hold = false)
                     VoiceState.RECORDING_TAP -> stopRecording()
+                    VoiceState.AWAITING_COMMIT -> commitPending()
                     else -> Unit
                 }
             }
@@ -376,6 +394,9 @@ class VoiceImeService : InputMethodService() {
         voiceView.holdMode = false
         modifyMode = false
         modifyPending = false
+        modifyPopupText = false
+        pendingCommitText = null
+        voiceView.readyToCommit = false
         if (BuildConfig.DOUBAO_API_KEY.isEmpty()) {
             voiceView.micEnabled = false
             voiceView.setStatus(getString(R.string.voice_not_configured), isError = true)
@@ -386,8 +407,25 @@ class VoiceImeService : InputMethodService() {
     }
 
     /** "修改" entry: the big mic button lights up and records, but what is
-     * said is an instruction for the backend, not text to commit. */
+     * said is an instruction for the backend, not text to commit. With text
+     * waiting in the popup, the instruction modifies the popup text and the
+     * result stays in the popup until the green-arrow tap; otherwise it
+     * modifies the field text (v1.2.2 behaviour). */
     private fun enterModifyMode() {
+        if (voiceState == VoiceState.AWAITING_COMMIT) {
+            val pending = pendingCommitText
+            if (pending.isNullOrBlank()) return
+            if (!networkAvailable()) {
+                Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_offline), Toast.LENGTH_SHORT).show()
+                return
+            }
+            modifyPopupText = true
+            modifyMode = true
+            voiceView.readyToCommit = false
+            voiceState = VoiceState.IDLE
+            startRecording(hold = false)
+            return
+        }
         if (voiceState != VoiceState.IDLE) return
         if (readFieldText().isNullOrBlank()) {
             Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_empty), Toast.LENGTH_SHORT).show()
@@ -397,6 +435,7 @@ class VoiceImeService : InputMethodService() {
             Toast.makeText(this@VoiceImeService, getString(R.string.voice_edit_offline), Toast.LENGTH_SHORT).show()
             return
         }
+        modifyPopupText = false
         modifyMode = true
         startRecording(hold = false)
     }
@@ -457,6 +496,7 @@ class VoiceImeService : InputMethodService() {
         ) {
             voiceView.setStatus(getString(R.string.voice_need_permission), isError = true)
             modifyMode = false
+            modifyPopupText = false
             try {
                 startActivity(
                     Intent(this, PermissionActivity::class.java)
@@ -470,6 +510,8 @@ class VoiceImeService : InputMethodService() {
         if (!networkAvailable()) {
             if (!OfflineAsr.isModelReady(this)) {
                 voiceView.setStatus(getString(R.string.voice_offline_no_pack), isError = true)
+                modifyMode = false
+                modifyPopupText = false
                 return
             }
             startOfflineRecording(hold)
@@ -600,13 +642,16 @@ class VoiceImeService : InputMethodService() {
         setPopupCorrecting(true)
         if (modifyMode) {
             voiceView.setStatus(getString(R.string.voice_editing))
+            setPopupStatusText(getString(R.string.voice_editing))
             if (text.isEmpty()) {
-                finishVoiceSession()
+                if (modifyPopupText) restorePendingCommit() else finishVoiceSession()
                 return
             }
-            val original = readFieldText()
+            // Popup-target modify: the original is the text waiting in the
+            // popup; field-target modify reads the field (v1.2.2).
+            val original = if (modifyPopupText) pendingCommitText else readFieldText()
             if (original.isNullOrBlank()) {
-                finishVoiceSession()
+                if (modifyPopupText) restorePendingCommit() else finishVoiceSession()
                 return
             }
             val id = sessionId
@@ -623,24 +668,32 @@ class VoiceImeService : InputMethodService() {
             finishVoiceSession()
             return
         }
-        // Backend semantic correction; on any failure the original text is
-        // committed instead. The sessionId guard drops late callbacks after
-        // a mode switch / input finish.
+        // Backend semantic correction (with the Settings cleaning template);
+        // on any failure the original text waits in the popup instead. The
+        // sessionId guard drops late callbacks after a mode switch / input
+        // finish.
         pendingOriginal = text
         val id = sessionId
         handler.removeCallbacks(correctionTimeout)
         handler.postDelayed(correctionTimeout, CORRECTION_TIMEOUT_MS)
-        corrector.correct(text) { corrected ->
+        corrector.correct(text, correctLevel()) { corrected ->
             handler.post { if (id == sessionId) onCorrectionDone(text, corrected) }
         }
     }
 
-    /** Offline decode finished: raw text goes straight on screen, no correction. */
+    /** Offline decode finished: raw text waits in the popup for the
+     *  green-arrow tap, no correction. */
     private fun onOfflineFinal(text: String) {
         // Modify needs the backend; offline the instruction is discarded and
         // the original stays untouched.
         if (modifyMode) {
-            finishVoiceSession()
+            if (modifyPopupText) {
+                modifyPopupText = false
+                setPopupText(pendingCommitText ?: "")
+                enterAwaitingCommit()
+            } else {
+                finishVoiceSession()
+            }
             return
         }
         voiceState = VoiceState.PROCESSING
@@ -652,23 +705,37 @@ class VoiceImeService : InputMethodService() {
             finishVoiceSession()
             return
         }
-        commitOnce(text)
-        finishVoiceSession()
+        pendingCommitText = text
+        enterAwaitingCommit()
     }
 
+    /** Correction finished: the cleaned text stays in the popup and waits
+     *  for the green-arrow tap; nothing commits by itself. */
     private fun onCorrectionDone(original: String, corrected: String?) {
         handler.removeCallbacks(correctionTimeout)
         val out = corrected ?: original
         setPopupText(out)
-        commitOnce(out)
-        finishVoiceSession()
+        pendingCommitText = out
+        enterAwaitingCommit()
     }
 
-    /** Modify result: only the backend's text replaces the field; on any
-     * failure the original stays untouched and nothing is committed. */
+    /** Modify result: popup-target modify updates the popup text and waits
+     *  for the green-arrow tap; field-target modify replaces the field
+     *  (v1.2.2). On any failure the original stays untouched. */
     private fun onModifyDone(original: String, modified: String?) {
         handler.removeCallbacks(modifyTimeout)
         modifyPending = false
+        if (modifyPopupText) {
+            modifyPopupText = false
+            if (modified != null && modified != original) {
+                pendingCommitText = modified
+                setPopupText(modified)
+            } else {
+                setPopupText(pendingCommitText ?: original)
+            }
+            enterAwaitingCommit()
+            return
+        }
         if (modified != null && modified != original) {
             if (replaceFieldText(modified)) {
                 setPopupText(modified)
@@ -678,12 +745,62 @@ class VoiceImeService : InputMethodService() {
         finishVoiceSession()
     }
 
-    /** Correction finished (or gave up): commit happened, back to idle. */
+    /** Cleaned / modified / offline text is ready in the popup: tear down
+     *  the ASR session, turn the mic green with an up-arrow, and wait for
+     *  the tap. The popup stays until the tap (or a mode switch). */
+    private fun enterAwaitingCommit() {
+        handler.removeCallbacks(correctionTimeout)
+        handler.removeCallbacks(modifyTimeout)
+        modifyPending = false
+        pendingOriginal = null
+        cleanupSession()
+        voiceState = VoiceState.AWAITING_COMMIT
+        voiceView.recording = false
+        voiceView.micEnabled = true
+        voiceView.readyToCommit = true
+        voiceView.setInterim("")
+        setPopupCorrecting(false)
+        setPopupStatusText(getString(R.string.voice_ready_to_commit))
+        voiceView.setStatus(getString(R.string.voice_ready_to_commit))
+    }
+
+    /** The pending text could not be modified (empty instruction / no
+     *  original): put it back in the popup and keep waiting for the tap. */
+    private fun restorePendingCommit() {
+        modifyMode = false
+        modifyPopupText = false
+        setPopupText(pendingCommitText ?: "")
+        enterAwaitingCommit()
+    }
+
+    /** Green-arrow tap: the previewed text goes on screen, then the popup
+     *  goes and the session ends. */
+    private fun commitPending() {
+        if (voiceState != VoiceState.AWAITING_COMMIT) return
+        val text = pendingCommitText
+        pendingCommitText = null
+        voiceView.readyToCommit = false
+        if (!text.isNullOrEmpty()) commitOnce(text)
+        dismissVoicePopup()
+        finishVoiceSession()
+    }
+
+    /** Cleaning template from Settings (normal / medium / strong, default
+     *  normal). Only the /correct call sends it; /modify is unaffected. */
+    private fun correctLevel(): String {
+        val level = getSharedPreferences(SettingsPanelView.PREFS, Context.MODE_PRIVATE)
+            .getString(SettingsPanelView.KEY_CORRECT_LEVEL, "normal") ?: "normal"
+        return if (level in SettingsPanelView.CORRECT_LEVELS) level else "normal"
+    }
+
+    /** Voice session finished: back to idle. */
     private fun finishVoiceSession() {
         handler.removeCallbacks(correctionTimeout)
         handler.removeCallbacks(modifyTimeout)
         modifyPending = false
         pendingOriginal = null
+        pendingCommitText = null
+        voiceView.readyToCommit = false
         offlineMode = false
         offlineChunks.clear()
         corrector.cancel()
@@ -713,6 +830,9 @@ class VoiceImeService : InputMethodService() {
         // commit. In modify mode the interim is an instruction, never text
         // to salvage.
         if (pendingOriginal != null || modifyPending) return
+        // Text waiting in the popup for the arrow tap: a late close must
+        // not tear it down.
+        if (voiceState == VoiceState.AWAITING_COMMIT) return
         handler.removeCallbacks(processingTimeout)
         // Connection dropped without a final packet: salvage the last interim.
         if (asrClient?.gotFinal != true && !modifyMode) commitOnce(lastInterim)
@@ -731,6 +851,9 @@ class VoiceImeService : InputMethodService() {
         // Final text already received: a late ASR error must not discard it;
         // the correction / modify flow commits the original on its own failure.
         if (pendingOriginal != null || modifyPending) return
+        // Text waiting in the popup for the arrow tap: a late ASR error
+        // must not dismiss it.
+        if (voiceState == VoiceState.AWAITING_COMMIT) return
         handler.removeCallbacks(processingTimeout)
         sessionId++
         capture?.stop()
@@ -741,6 +864,9 @@ class VoiceImeService : InputMethodService() {
         offlineMode = false
         modifyMode = false
         modifyPending = false
+        modifyPopupText = false
+        pendingCommitText = null
+        voiceView.readyToCommit = false
         voiceView.recording = false
         voiceView.micEnabled = true
         // Keep what was heard visible in the popup for a moment; nothing is
@@ -757,6 +883,10 @@ class VoiceImeService : InputMethodService() {
         modifyPending = false
         val wasModify = modifyMode
         modifyMode = false
+        modifyPopupText = false
+        // Awaiting commit: the previewed text is abandoned, never salvaged;
+        // the user did not tap the arrow.
+        val wasAwaiting = voiceState == VoiceState.AWAITING_COMMIT
         val wasActive = asrClient != null || voiceState != VoiceState.IDLE
         // Correction in flight: the final text beats the last interim, and
         // the late correction callback is dropped by the sessionId bump.
@@ -764,13 +894,14 @@ class VoiceImeService : InputMethodService() {
         // not text to commit.
         val salvageText = pendingOriginal ?: lastInterim
         pendingOriginal = null
+        pendingCommitText = null
         offlineMode = false
         offlineChunks.clear()
         corrector.cancel()
         sessionId++
         capture?.stop()
         capture = null
-        if (salvage && wasActive && !committed && !wasModify && salvageText.isNotEmpty()) {
+        if (salvage && wasActive && !committed && !wasModify && !wasAwaiting && salvageText.isNotEmpty()) {
             commitOnce(salvageText)
         }
         asrClient?.cancel()
@@ -779,6 +910,7 @@ class VoiceImeService : InputMethodService() {
         dismissVoicePopup()
         if (::voiceView.isInitialized) {
             voiceView.recording = false
+            voiceView.readyToCommit = false
             voiceView.setInterim("")
         }
     }
@@ -821,13 +953,14 @@ class VoiceImeService : InputMethodService() {
             textSize = 16f
             setTextColor(getColor(R.color.key_text))
         }
-        // The scroll area grows with the text up to a cap, then scrolls
-        // internally, so the popup never grows over the app's text field.
+        // The scroll area grows upward with the text, no fixed cap: it
+        // keeps growing until it reaches the status bar, then scrolls
+        // internally. Covering the app above is fine.
         val scroll = object : ScrollView(this) {
             override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                 super.onMeasure(
                     widthMeasureSpec,
-                    MeasureSpec.makeMeasureSpec(dp(120f), MeasureSpec.AT_MOST)
+                    MeasureSpec.makeMeasureSpec(popupMaxHeightPx(), MeasureSpec.AT_MOST)
                 )
             }
         }.apply {
@@ -876,6 +1009,23 @@ class VoiceImeService : InputMethodService() {
         val tv = popupText ?: return
         tv.text = text
         popupScroll?.post { popupScroll?.fullScroll(View.FOCUS_DOWN) }
+        // The popup window does not resize itself when its content grows;
+        // re-measure it so it keeps growing upward with the text.
+        if (voicePopup?.isShowing == true) voicePopup?.update()
+    }
+
+    /** Tallest the popup may grow: screen height minus the input view,
+     *  minus the status bar, minus the gap and the status line. Short text
+     *  stays short (WRAP_CONTENT); long text hits this cap and scrolls. */
+    private fun popupMaxHeightPx(): Int {
+        val screenH = resources.displayMetrics.heightPixels
+        val anchorH = voiceView.rootView.height.takeIf { it > 0 } ?: dp(300f)
+        val statusBar = run {
+            val id = resources.getIdentifier("status_bar_height", "dimen", "android")
+            if (id > 0) resources.getDimensionPixelSize(id) else dp(24f)
+        }
+        return (screenH - anchorH - statusBar - dp(8f) - dp(20f) - dp(24f))
+            .coerceAtLeast(dp(120f))
     }
 
     private fun setPopupCorrecting(correcting: Boolean) {

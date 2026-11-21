@@ -12,7 +12,7 @@ android {
         minSdk = 28
         targetSdk = 34
         versionCode = 5
-        versionName = "1.2.1"
+        versionName = 1.2.2
 
         // Offline voice (Sherpa-ONNX) ships arm64 native libs only: the AAR
         // carries all four ABIs (~110 MB); the user's phone is arm64.

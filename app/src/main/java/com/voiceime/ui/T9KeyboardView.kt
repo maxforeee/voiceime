@@ -1,6 +1,7 @@
 package com.voiceime.ui
 
 import android.content.Context
+import android.os.SystemClock
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -32,6 +33,10 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     private var symbolKeyHeight: Int
     private var showingSymbols = false
     private var showingZh = true
+    private var showingQwerty = false
+    private var qwertyShift = false
+    private var qwertyCaps = false
+    private var lastShiftTapMs = 0L
     private val gap = context.dp(4f)
     private val keyGap = gap * 2
     private val rowPitch: Int get() = keyHeight + keyGap
@@ -62,7 +67,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
             .putFloat(KEY_ROW_PITCH_DP, clamped).apply()
         keyHeight = context.dp(clamped) - keyGap
         symbolKeyHeight = rowPitch * 5 / 6
-        if (showingSymbols) showSymbols() else showMain(showingZh)
+        if (showingSymbols) showSymbols() else if (showingQwerty) showQwerty() else showMain(showingZh)
     }
 
     init {
@@ -84,9 +89,15 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         symbolKeyHeight = rowPitch * 5 / 6
     }
 
+    /** Show the 9-key page for Chinese, the full QWERTY page for English. */
+    fun showMainForLang(zh: Boolean) {
+        if (zh) showMain(true) else showQwerty()
+    }
+
     fun showMain(zh: Boolean) {
         removeAllViews()
         showingSymbols = false
+        showingQwerty = false
         showingZh = zh
         val sub1 = if (zh) "，" else null
         row(
@@ -114,6 +125,7 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     fun showSymbols() {
         removeAllViews()
         showingSymbols = true
+        showingQwerty = false
         row(textKey("1", "1"), textKey("2", "2"), textKey("3", "3"), height = symbolKeyHeight)
         row(textKey("4", "4"), textKey("5", "5"), textKey("6", "6"), height = symbolKeyHeight)
         row(textKey("7", "7"), textKey("8", "8"), textKey("9", "9"), height = symbolKeyHeight)
@@ -127,6 +139,70 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
             weights = floatArrayOf(1f, 2f, 1f)
         )
     }
+
+    /** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows
+     *  fill the same panel height: each row is (panel - padding) / 4. */
+    fun showQwerty() {
+        removeAllViews()
+        showingSymbols = false
+        showingQwerty = true
+        val upper = qwertyShift || qwertyCaps
+        val h = (panelHeightPx - paddingTop - paddingBottom) / 4
+        fun letter(ch: Char): TextView {
+            val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
+            return textKey(s, s)
+        }
+        row(*"qwertyuiop".map { letter(it) }.toTypedArray(), height = h)
+        row(
+            spacer(),
+            *"asdfghjkl".map { letter(it) }.toTypedArray(),
+            spacer(),
+            height = h,
+            weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
+        )
+        row(
+            spacer(),
+            *"zxcvbnm".map { letter(it) }.toTypedArray(),
+            spacer(),
+            height = h,
+            weights = floatArrayOf(1.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1.5f)
+        )
+        row(
+            textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
+            textKey("\u4E2D/\u82F1", "lang", function = true),
+            textKey("\u7B26\u53F7", "sym", function = true),
+            textKey("\u7A7A\u683C", "space"),
+            textKey("\u232B", "del", function = true),
+            textKey("\u56DE\u8F66", "enter", function = true),
+            height = h,
+            weights = floatArrayOf(1.5f, 1f, 1f, 3.5f, 1.5f, 1.5f)
+        )
+    }
+
+    /** Shift: one tap = one-shot uppercase, second quick tap = caps lock,
+     *  tap while caps is on = back to lowercase. */
+    fun toggleQwertyShift() {
+        val now = SystemClock.uptimeMillis()
+        when {
+            qwertyCaps -> { qwertyCaps = false; qwertyShift = false }
+            qwertyShift && now - lastShiftTapMs < 400 -> { qwertyShift = false; qwertyCaps = true }
+            else -> qwertyShift = true
+        }
+        lastShiftTapMs = now
+        if (showingQwerty) showQwerty()
+    }
+
+    /** After a one-shot shifted letter is committed, drop back to lowercase. */
+    fun consumeQwertyShiftIfOneShot() {
+        if (qwertyShift && !qwertyCaps) {
+            qwertyShift = false
+            if (showingQwerty) showQwerty()
+        }
+    }
+
+    /** Invisible spacer: takes width in a row without drawing anything. */
+    private fun spacer(): TextView =
+        TextView(context).apply { visibility = View.INVISIBLE }
 
     private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null) {
         val row = LinearLayout(context).apply { orientation = HORIZONTAL }

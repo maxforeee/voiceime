@@ -309,7 +309,7 @@ class VoiceImeService : InputMethodService() {
         digits.clear()
         symbolsPage = false
         if (::keyboard.isInitialized) {
-            keyboard.showMain(lang == Lang.ZH)
+            keyboard.showMainForLang(lang == Lang.ZH)
             refreshCandidates()
         }
     }
@@ -825,7 +825,7 @@ class VoiceImeService : InputMethodService() {
             key == "lang" -> {
                 flushBuffer()
                 lang = if (lang == Lang.ZH) Lang.EN else Lang.ZH
-                keyboard.showMain(lang == Lang.ZH)
+                keyboard.showMainForLang(lang == Lang.ZH)
             }
             key == "sym" -> {
                 flushBuffer()
@@ -834,11 +834,18 @@ class VoiceImeService : InputMethodService() {
             }
             key == "back" -> {
                 symbolsPage = false
-                keyboard.showMain(lang == Lang.ZH)
+                keyboard.showMainForLang(lang == Lang.ZH)
             }
             symbolsPage -> {
                 flushBuffer()
                 commit(key)
+            }
+            key == "shift" -> keyboard.toggleQwertyShift()
+            key.length == 1 && (key[0] in 'a'..'z' || key[0] in 'A'..'Z') -> {
+                // QWERTY letter: commit directly, no multitap cycling.
+                finalizeTap()
+                commit(key)
+                keyboard.consumeQwertyShiftIfOneShot()
             }
             lang == Lang.EN -> onEnglishKey(key)
             key == "1" -> {

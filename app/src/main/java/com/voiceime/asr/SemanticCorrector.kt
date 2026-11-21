@@ -1,5 +1,6 @@
 package com.voiceime.asr
 
+import com.voiceime.BuildConfig
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -43,6 +44,7 @@ class SemanticCorrector {
             .toRequestBody(JSON_TYPE)
         val request = Request.Builder()
             .url(CORRECT_URL)
+            .header("X-Correct-Token", BuildConfig.CORRECT_TOKEN)
             .post(body)
             .build()
         val call = client.newCall(request)

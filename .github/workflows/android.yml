@@ -31,6 +31,7 @@ jobs:
           # Optional repository secret; when absent the APK builds with an
           # empty key and voice mode shows "not configured". Never echoed.
           DOUBAO_API_KEY_FROM_CONFIG: ${{ secrets.DOUBAO_API_KEY_FROM_CONFIG }}
+          VOICEIME_CORRECT_TOKEN: ${{ secrets.VOICEIME_CORRECT_TOKEN }}
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload debug APK

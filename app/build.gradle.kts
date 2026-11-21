@@ -19,6 +19,10 @@ android {
         val rawKey = System.getenv("DOUBAO_API_KEY_FROM_CONFIG")?.trim().orEmpty()
         val escapedKey = rawKey.replace("\\", "\\\\").replace("\"", "\\\"")
         buildConfigField("String", "DOUBAO_API_KEY", "\"$escapedKey\"")
+        // Correction shared secret, same injection pattern as the speech key.
+        val rawToken = System.getenv("VOICEIME_CORRECT_TOKEN")?.trim().orEmpty()
+        val escapedToken = rawToken.replace("\\", "\\\\").replace("\"", "\\\"")
+        buildConfigField("String", "CORRECT_TOKEN", "\"$escapedToken\"")
     }
 
     buildFeatures {

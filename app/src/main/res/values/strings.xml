@@ -34,4 +34,15 @@
     <string name="settings_export_empty">暂无学习记录可导出</string>
     <string name="settings_export_failed">导出失败</string>
     <string name="settings_export_share">分享词库文件</string>
+
+    <string name="voice_offline_no_pack">无网络且未下载离线语音包，请联网后在设置里下载</string>
+    <string name="voice_offline_listening">离线识别中…</string>
+    <string name="voice_offline">离线识别</string>
+    <string name="settings_offline_pack">离线语音包</string>
+    <string name="settings_offline_not_downloaded">未下载</string>
+    <string name="settings_offline_downloading">下载中 %1$d%%</string>
+    <string name="settings_offline_downloaded">已下载</string>
+    <string name="settings_offline_download_btn">下载</string>
+    <string name="settings_offline_failed">下载失败，请重试</string>
+    <string name="settings_offline_no_space">存储空间不足，无法下载离线语音包</string>
 </resources>

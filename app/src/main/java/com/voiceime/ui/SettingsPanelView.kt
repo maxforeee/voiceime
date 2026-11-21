@@ -15,6 +15,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
 
     var onHeightChange: ((Float) -> Unit)? = null
     var onExportLearned: (() -> Unit)? = null
+    var onOfflineDownload: (() -> Unit)? = null
     var onClose: (() -> Unit)? = null
 
     private var heightDp = 62f
@@ -23,6 +24,15 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         gravity = Gravity.CENTER
         setTextColor(context.getColor(R.color.key_text))
     }
+    private val offlineStatusLabel = TextView(context).apply {
+        textSize = 15f
+        gravity = Gravity.CENTER
+        setTextColor(context.getColor(R.color.key_text_secondary))
+    }
+    private val offlineDownloadBtn =
+        actionButton(context.getString(R.string.settings_offline_download_btn)) {
+            onOfflineDownload?.invoke()
+        }
 
     init {
         orientation = VERTICAL
@@ -85,11 +95,40 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         addView(exportRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
+
+        val offlineRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(context.getColor(R.color.key_bg))
+            setPadding(context.dp(14f), context.dp(12f), context.dp(14f), context.dp(12f))
+        }
+        val offlineLabel = TextView(context).apply {
+            text = context.getString(R.string.settings_offline_pack)
+            textSize = 16f
+            setTextColor(context.getColor(R.color.key_text))
+        }
+        offlineRow.addView(offlineLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        offlineRow.addView(offlineStatusLabel, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            marginEnd = context.dp(12f)
+        })
+        offlineRow.addView(offlineDownloadBtn, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        addView(offlineRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
+        })
     }
 
     fun setHeightDp(dpValue: Float) {
         heightDp = dpValue
         valueLabel.text = "${dpValue.toInt()} dp"
+    }
+
+    fun setOfflineStatusText(text: String) {
+        offlineStatusLabel.text = text
+    }
+
+    fun setOfflineDownloadEnabled(enabled: Boolean) {
+        offlineDownloadBtn.isEnabled = enabled
+        offlineDownloadBtn.alpha = if (enabled) 1f else 0.4f
     }
 
     private fun changeHeight(delta: Float) {

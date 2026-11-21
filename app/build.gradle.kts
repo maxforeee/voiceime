@@ -11,8 +11,14 @@ android {
         applicationId = "com.voiceime"
         minSdk = 28
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
+
+        // Offline voice (Sherpa-ONNX) ships arm64 native libs only: the AAR
+        // carries all four ABIs (~110 MB); the user's phone is arm64.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
 
         // Speech key is injected at build time from the environment only.
         // It must never be hardcoded, logged, or committed.
@@ -52,4 +58,9 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // tar.bz2 extraction for the offline voice pack download.
+    implementation("org.apache.commons:commons-compress:1.26.0")
+    // Sherpa-ONNX Android AAR (official prebuilt release asset, no Maven
+    // artifact): CI downloads it into app/libs/ before the build.
+    implementation(files("libs/sherpa-onnx-2.0.2.aar"))
 }

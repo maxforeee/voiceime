@@ -26,6 +26,8 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.voiceime.asr.AudioCapture
 import com.voiceime.asr.DoubaoAsrClient
+import com.voiceime.asr.OfflineAsr
+import com.voiceime.asr.OfflineModelDownloader
 import com.voiceime.asr.SemanticCorrector
 import com.voiceime.clipboard.ClipboardHistory
 import com.voiceime.lexicon.Lexicon
@@ -127,6 +129,10 @@ class VoiceImeService : InputMethodService() {
     private var capture: AudioCapture? = null
     private var lastInterim = ""
     private var committed = false
+    // Offline recognition (Sherpa-ONNX Paraformer int8, downloaded on demand).
+    private var offlineMode = false
+    private var offlineDownloading = false
+    private val offlineChunks = ArrayList<ByteArray>()
     private val processingTimeout = Runnable {
         if (voiceState == VoiceState.PROCESSING) failSession(getString(R.string.voice_timeout))
     }
@@ -264,6 +270,7 @@ class VoiceImeService : InputMethodService() {
             visibility = View.GONE
             onHeightChange = { dpValue -> applyKeyboardHeight(dpValue) }
             onExportLearned = { exportLearned() }
+            onOfflineDownload = { downloadOfflinePack() }
             onClose = { closeSettingsPanel() }
         }
         root.addView(settingsPanel, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, panelHeight))
@@ -387,7 +394,11 @@ class VoiceImeService : InputMethodService() {
             return
         }
         if (!networkAvailable()) {
-            voiceView.setStatus(getString(R.string.voice_no_network), isError = true)
+            if (!OfflineAsr.isModelReady(this)) {
+                voiceView.setStatus(getString(R.string.voice_offline_no_pack), isError = true)
+                return
+            }
+            startOfflineRecording(hold)
             return
         }
         val id = ++sessionId
@@ -431,6 +442,29 @@ class VoiceImeService : InputMethodService() {
         client.connect()
     }
 
+    /** No network but the offline pack is present: record locally, decode at stop. */
+    private fun startOfflineRecording(hold: Boolean) {
+        val id = ++sessionId
+        committed = false
+        lastInterim = ""
+        pendingOriginal = null
+        offlineMode = true
+        offlineChunks.clear()
+        voiceState = if (hold) VoiceState.RECORDING_HOLD else VoiceState.RECORDING_TAP
+        voiceView.recording = true
+        voiceView.holdMode = hold
+        voiceView.setInterim("")
+        voiceView.setStatus(getString(R.string.voice_offline_listening))
+        showVoicePopup()
+        setPopupStatusText(getString(R.string.voice_offline))
+        val cap = AudioCapture(
+            onChunk = { pcm, n -> offlineChunks.add(pcm.copyOf(n)) },
+            onError = { msg -> handler.post { if (id == sessionId) failSession(msg) } }
+        )
+        capture = cap
+        if (!cap.start()) return  // onError already scheduled failSession
+    }
+
     private fun onAsrReady(id: Int) {
         if (voiceState != VoiceState.RECORDING_HOLD && voiceState != VoiceState.RECORDING_TAP) return
         val client = asrClient ?: return
@@ -458,6 +492,23 @@ class VoiceImeService : InputMethodService() {
         setPopupCorrecting(true)
         capture?.stop()
         capture = null
+        if (offlineMode) {
+            // Offline: decode the captured audio on a worker thread, then
+            // commit the raw text (no backend correction without network).
+            setPopupStatusText(getString(R.string.voice_processing))
+            val id = sessionId
+            val chunks = offlineChunks.toList()
+            offlineChunks.clear()
+            Thread {
+                val text = try {
+                    OfflineAsr(this).decode(chunks)
+                } catch (e: Exception) {
+                    ""
+                }
+                handler.post { if (id == sessionId) onOfflineFinal(text) }
+            }.start()
+            return
+        }
         asrClient?.sendAudio(ByteArray(0), 0, last = true)
         handler.removeCallbacks(processingTimeout)
         handler.postDelayed(processingTimeout, FINAL_TIMEOUT_MS)
@@ -489,6 +540,21 @@ class VoiceImeService : InputMethodService() {
         }
     }
 
+    /** Offline decode finished: raw text goes straight on screen, no correction. */
+    private fun onOfflineFinal(text: String) {
+        voiceState = VoiceState.PROCESSING
+        voiceView.recording = false
+        voiceView.micEnabled = false
+        setPopupText(text)
+        setPopupCorrecting(false)
+        if (text.isEmpty()) {
+            finishVoiceSession()
+            return
+        }
+        commitOnce(text)
+        finishVoiceSession()
+    }
+
     private fun onCorrectionDone(original: String, corrected: String?) {
         handler.removeCallbacks(correctionTimeout)
         val out = corrected ?: original
@@ -501,6 +567,8 @@ class VoiceImeService : InputMethodService() {
     private fun finishVoiceSession() {
         handler.removeCallbacks(correctionTimeout)
         pendingOriginal = null
+        offlineMode = false
+        offlineChunks.clear()
         corrector.cancel()
         cleanupSession()
         voiceState = VoiceState.IDLE
@@ -544,6 +612,7 @@ class VoiceImeService : InputMethodService() {
         asrClient?.cancel()
         asrClient = null
         voiceState = VoiceState.IDLE
+        offlineMode = false
         voiceView.recording = false
         voiceView.micEnabled = true
         // Keep what was heard visible in the popup for a moment; nothing is
@@ -561,6 +630,8 @@ class VoiceImeService : InputMethodService() {
         // the late correction callback is dropped by the sessionId bump.
         val salvageText = pendingOriginal ?: lastInterim
         pendingOriginal = null
+        offlineMode = false
+        offlineChunks.clear()
         corrector.cancel()
         sessionId++
         capture?.stop()
@@ -698,6 +769,12 @@ class VoiceImeService : InputMethodService() {
         popupEnd?.alpha = if (correcting) 0.5f else 1f
     }
 
+    /** Show a one-line status in the popup (e.g. offline mode). */
+    private fun setPopupStatusText(text: String) {
+        popupStatus?.text = text
+        popupStatus?.visibility = View.VISIBLE
+    }
+
     private fun dismissVoicePopup() {
         handler.removeCallbacks(popupDismiss)
         voicePopup?.dismiss()
@@ -744,6 +821,7 @@ class VoiceImeService : InputMethodService() {
         clipboardPanel.visibility = View.GONE
         settingsPanel.visibility = View.VISIBLE
         settingsPanel.setHeightDp(keyboard.currentRowPitchDp())
+        refreshOfflineStatus()
     }
 
     private fun closeSettingsPanel() {
@@ -810,6 +888,51 @@ class VoiceImeService : InputMethodService() {
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.settings_export_failed), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /** Offline pack row in Settings: current status, refreshed when opened. */
+    private fun refreshOfflineStatus() {
+        if (!::settingsPanel.isInitialized || offlineDownloading) return
+        settingsPanel.setOfflineStatusText(
+            getString(
+                if (OfflineAsr.isModelReady(this)) R.string.settings_offline_downloaded
+                else R.string.settings_offline_not_downloaded
+            )
+        )
+        settingsPanel.setOfflineDownloadEnabled(true)
+    }
+
+    /** Download the offline voice pack (GitHub, mirror on failure). */
+    private fun downloadOfflinePack() {
+        if (offlineDownloading) return
+        if (!networkAvailable()) {
+            Toast.makeText(this, getString(R.string.voice_no_network), Toast.LENGTH_SHORT).show()
+            return
+        }
+        offlineDownloading = true
+        settingsPanel.setOfflineStatusText(getString(R.string.settings_offline_downloading, 0))
+        settingsPanel.setOfflineDownloadEnabled(false)
+        OfflineModelDownloader(this).download(
+            onProgress = { pct ->
+                handler.post {
+                    settingsPanel.setOfflineStatusText(
+                        getString(R.string.settings_offline_downloading, pct)
+                    )
+                }
+            },
+            onDone = { ok, errorRes ->
+                handler.post {
+                    offlineDownloading = false
+                    settingsPanel.setOfflineDownloadEnabled(true)
+                    if (ok) {
+                        settingsPanel.setOfflineStatusText(getString(R.string.settings_offline_downloaded))
+                    } else {
+                        settingsPanel.setOfflineStatusText(getString(R.string.settings_offline_not_downloaded))
+                        Toast.makeText(this, getString(errorRes), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        )
     }
 
     private fun csvEscape(s: String): String =

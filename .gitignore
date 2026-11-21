@@ -24,3 +24,6 @@ m2_verify/zh_full.txt
 # Python
 __pycache__/
 *.pyc
+
+# Sherpa-ONNX AAR: 52 MB prebuilt, downloaded by CI into app/libs/.
+app/libs/

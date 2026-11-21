@@ -5,7 +5,6 @@ import android.os.SystemClock
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -65,9 +64,9 @@ private val keyHeight: Int get() = pitchPx - keyGap
 private val rowPitch: Int get() = pitchPx
 
 /** Main key label size: 18sp at reference pitch, scaled with it. The
-* 9-key sublabel is 0.65x this (RelativeSizeSpan), so it shrinks with
-* the key and can never overflow the key at the lowest pitch (45dp:
-* main 13.1sp + sub 8.5sp fits a 39dp key with room to spare). */
+* 9-key digit and its letters share this size on one line, so the
+* label shrinks with the key and can never overflow it at the lowest
+* pitch (45dp: 13.1sp fits a 39dp key with room to spare). */
 private val mainTextSizeSp: Float get() = 18f * scale
 /** Narrow bottom-row labels (lang / symbol on the QWERTY bottom row):
 * 15sp at reference pitch, scaled with it. */
@@ -79,17 +78,15 @@ private val smallTextSizeSp: Float get() = 15f * scale
 val panelHeightPx: Int
 get() = paddingTop + paddingBottom + 5 * rowPitch
 
-/** Visible height of one QWERTY key: QWERTY_KEY_RATIO of a T9 row pitch
-* (the reference keyboard's key/pitch ratio, 93px/117px), so the
-* English keys track the Settings height directly with no extra shrink.
-* The vertical gap is the same scaled gap as the T9 keys. */
-private val qwertyKeyHeight: Int
-get() = (rowPitch * QWERTY_KEY_RATIO).toInt()
-private val qwertyRowPitch: Int get() = qwertyKeyHeight + keyGap
+/** QWERTY row pitch: the 4 English rows share the 5-row T9 panel
+* height, so both pages are exactly as tall at the same Settings
+* height (5 x rowPitch spread over 4 rows). The vertical gap is the
+* same scaled gap as the T9 keys. */
+private val qwertyRowPitch: Int get() = (5 * rowPitch) / 4
 
-/** Height of the page currently shown: the 4-row QWERTY page is
-* shorter than the 5-row T9 page (4 x qwertyRowPitch vs 5 x
-* rowPitch); symbols keep the 5-row height. */
+/** Height of the page currently shown: QWERTY and T9 pages are the
+* same height (4 x qwertyRowPitch == 5 x rowPitch); symbols keep the
+* 5-row height. */
 val currentPanelHeightPx: Int
 get() = paddingTop + paddingBottom +
 if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
@@ -102,9 +99,6 @@ const val MAX_ROW_PITCH_DP = 72f
 /** Reference pitch: every size below is defined at 62dp and scaled
 * from it, so the keyboard keeps its proportions at any setting. */
 private const val BASE_ROW_PITCH_DP = 62f
-/** QWERTY key height as a fraction of the row pitch (reference
-* keyboard: 93px key on a 117px pitch). */
-private const val QWERTY_KEY_RATIO = 0.80f
 }
 
 /** Current row pitch in dp, for the Settings panel label. */
@@ -205,9 +199,9 @@ weights = floatArrayOf(1f, 2f, 1f)
 )
 }
 
-/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows,
-* each key QWERTY_KEY_RATIO of a T9 row pitch, so the whole panel
-* tracks the Settings height (see currentPanelHeightPx). Gboard
+/** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows
+* sharing the 5-row T9 panel height, so the whole panel tracks the
+* Settings height (see currentPanelHeightPx). Gboard
 * layout: 10 / 9 / 7 letters, then the bottom row. Shift opens
 * the z row and delete closes it, both about two letter keys wide so
 * the row is not cramped; the bottom row is lang / symbol / space /
@@ -309,11 +303,13 @@ private fun symbolCell(symbol: String): TextView =
 baseKey(symbol, symbol, cell = true, pressScale = false)
 
 private fun digitKey(digit: String, letters: String?): TextView {
+// Digit on the left, letters on the right, one line, same size
+// (e.g. "2 ABC"); letters keep the secondary colour. No sublabel
+// (the 0 key) stays a centred digit.
 val label = if (letters == null) {
 SpannableStringBuilder(digit)
 } else {
-SpannableStringBuilder("$digit\n$letters").apply {
-setSpan(RelativeSizeSpan(0.65f), digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+SpannableStringBuilder("$digit $letters").apply {
 // Follows the theme (light grey / dark grey) via key_text_secondary.
 setSpan(
 ForegroundColorSpan(context.getColor(R.color.key_text_secondary)),
@@ -321,7 +317,8 @@ digit.length + 1, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
 )
 }
 }
-return baseKey(label, digit)
+
+return baseKey(label, digit, singleLine = true)
 }
 
 private fun textKey(label: String, code: String, function: Boolean = false, textSizeSp: Float? = null, singleLine: Boolean = false): TextView =

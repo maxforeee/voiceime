@@ -1111,8 +1111,8 @@ class VoiceImeService : InputMethodService() {
     }
 
     /** Resize the keyboard view to the height of the page it is showing
-     *  (the 4-row QWERTY page is shorter than the 5-row T9 page). Call
-     *  after every page switch, or the window keeps the old height. */
+     *  (QWERTY and T9 pages share the same height). Call after every
+     *  page switch, or the window keeps the old height. */
     private fun resizeKeyboardToPage() {
         if (!::keyboard.isInitialized) return
         keyboard.layoutParams.height = keyboard.currentPanelHeightPx

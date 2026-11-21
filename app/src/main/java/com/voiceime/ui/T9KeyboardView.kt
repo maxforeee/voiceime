@@ -58,6 +58,12 @@ private val gapPx: Int
 get() = (context.dp(4f) * scale).toInt().coerceAtLeast(context.dp(2f))
 private val keyGap: Int get() = gapPx * 2
 
+/** QWERTY-only vertical key gap: 6dp at reference pitch, scaled with it.
+* Wider than the shared 4dp gap, so the letter keys sit shorter with more
+* air between rows. Horizontal gap stays the shared gapPx. */
+private val qwertyVGapPx: Int
+    get() = (context.dp(6f) * scale).toInt().coerceAtLeast(context.dp(3f))
+
 // Visible key height. The row pitch adds the vertical gap (top + bottom
 // key margins), so the panel height is rows x (keyHeight + keyGap).
 private val keyHeight: Int get() = pitchPx - keyGap
@@ -79,14 +85,16 @@ val panelHeightPx: Int
 get() = paddingTop + paddingBottom + 5 * rowPitch
 
 /** QWERTY row pitch: the 4 English rows share the 5-row T9 panel
-* height, so both pages are exactly as tall at the same Settings
-* height (5 x rowPitch spread over 4 rows). The vertical gap is the
-* same scaled gap as the T9 keys. */
-private val qwertyRowPitch: Int get() = (5 * rowPitch) / 4
+* height, scaled by QWERTY_HEIGHT_FACTOR (0.88) so the English page
+* sits a little shorter than the T9 page at the same Settings height
+* -- the middle between v1.2.5 (too short) and v1.2.6 (as tall as T9,
+* too tall). The vertical gap is wider than the T9 gap (see
+* qwertyVGapPx), so the letter keys sit shorter with more air. */
+private val qwertyRowPitch: Int get() = (5 * rowPitch * QWERTY_HEIGHT_FACTOR / 4).toInt()
 
-/** Height of the page currently shown: QWERTY and T9 pages are the
-* same height (4 x qwertyRowPitch == 5 x rowPitch); symbols keep the
-* 5-row height. */
+/** Height of the page currently shown: QWERTY is a little shorter
+* than the 5-row T9 page (4 x qwertyRowPitch < 5 x rowPitch); symbols
+* keep the 5-row height. */
 val currentPanelHeightPx: Int
 get() = paddingTop + paddingBottom +
 if (showingQwerty) 4 * qwertyRowPitch else 5 * rowPitch
@@ -99,6 +107,9 @@ const val MAX_ROW_PITCH_DP = 72f
 /** Reference pitch: every size below is defined at 62dp and scaled
 * from it, so the keyboard keeps its proportions at any setting. */
 private const val BASE_ROW_PITCH_DP = 62f
+    /** QWERTY total-height factor vs the T9 panel: 1.0 = as tall as T9
+    * (v1.2.6, too tall), ~0.80 = v1.2.5 (too short); 0.88 is the middle. */
+    private const val QWERTY_HEIGHT_FACTOR = 0.88f
 }
 
 /** Current row pitch in dp, for the Settings panel label. */
@@ -216,19 +227,19 @@ fun letter(ch: Char): TextView {
 val s = if (upper) ch.uppercaseChar().toString() else ch.toString()
 return textKey(s, s)
 }
-row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h)
+row(*"qwertyuiop".map { letter(it)}.toTypedArray(), height = h, vGap = qwertyVGapPx)
 row(
 spacer(),
 *"asdfghjkl".map { letter(it)}.toTypedArray(),
 spacer(),
-height = h,
+height = h, vGap = qwertyVGapPx,
 weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
 )
 row(
 textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
 *"zxcvbnm".map { letter(it)}.toTypedArray(),
 textKey("\u232B", "del", function = true),
-height = h,
+height = h, vGap = qwertyVGapPx,
 weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
 )
 row(
@@ -236,7 +247,7 @@ textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = smallTextSizeSp, 
 textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = smallTextSizeSp, singleLine = true),
 textKey("\u7A7A\u683C", "space"),
 textKey("\u56DE\u8F66", "enter", function = true),
-height = h,
+height = h, vGap = qwertyVGapPx,
 weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
 )
 }
@@ -266,13 +277,13 @@ if (showingQwerty) showQwerty()
 private fun spacer(): TextView =
 TextView(context).apply { visibility = View.INVISIBLE}
 
-private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null) {
+private fun row(vararg keys: TextView, height: Int = rowPitch, weights: FloatArray? = null, hGap: Int = gapPx, vGap: Int = gapPx) {
 val row = LinearLayout(context).apply { orientation = HORIZONTAL}
 for ((i, k) in keys.withIndex()) {
 row.addView(
 k,
 LayoutParams(0, LayoutParams.MATCH_PARENT, weights?.getOrNull(i)?: 1f).apply {
-setMargins(gapPx, gapPx, gapPx, gapPx)
+setMargins(hGap, vGap, hGap, vGap)
 }
 )
 }

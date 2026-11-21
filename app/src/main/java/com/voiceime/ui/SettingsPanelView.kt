@@ -86,13 +86,13 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             setTextColor(context.getColor(R.color.key_text))
         }
         row.addView(label, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(actionButton("\u2212") { changeHeight(-2f) },
+        row.addView(actionButton("\u2212") { changeHeight(-1f) },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         row.addView(valueLabel, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             marginStart = context.dp(12f)
             marginEnd = context.dp(12f)
         })
-        row.addView(actionButton("+") { changeHeight(2f) },
+        row.addView(actionButton("+") { changeHeight(1f) },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         body.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(8f), context.dp(8f), context.dp(4f))

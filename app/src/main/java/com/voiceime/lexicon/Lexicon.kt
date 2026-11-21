@@ -7,6 +7,7 @@ import android.util.Log
 import com.voiceime.Candidate
 import com.voiceime.CandidateProvider
 import com.voiceime.CandidateResult
+import com.voiceime.LearnedWord
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream

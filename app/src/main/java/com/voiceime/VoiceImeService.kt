@@ -705,12 +705,12 @@ class VoiceImeService : InputMethodService() {
         val status = TextView(this).apply {
             textSize = 13f
             setTextColor(getColor(R.color.status_text))
-            text = getString(R.string.voice_correcting)
+            this.text = getString(R.string.voice_correcting)
             visibility = View.GONE
             setPadding(0, dp(4f), 0, 0)
         }
         val end = TextView(this).apply {
-            text = getString(R.string.voice_popup_end)
+            this.text = getString(R.string.voice_popup_end)
             textSize = 15f
             gravity = Gravity.CENTER
             setTextColor(getColor(R.color.on_accent))

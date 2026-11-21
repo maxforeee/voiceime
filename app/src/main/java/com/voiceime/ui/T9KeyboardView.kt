@@ -258,7 +258,7 @@ textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
 *"zxcvbnm".map { letter(it)}.toTypedArray(),
 textKey("\u232B", "del", function = true),
 height = h, vGap = 0,
-weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
+weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
 )
 addView(vGapView(g))
 row(

@@ -145,7 +145,11 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
     }
 
     /** Full 26-key QWERTY for English (Chinese stays 9-key). Four rows
-     *  fill the same panel height: each row is (panel - padding) / 4. */
+     *  fill the same panel height: each row is (panel - padding) / 4.
+     *  Gboard layout: 10 / 9 / 7 letters, then the bottom row. Shift opens
+     *  the z row and delete closes it, both about two letter keys wide so
+     *  the row is not cramped; the bottom row is lang / symbol / space /
+     *  enter with uniform non-space widths. */
     fun showQwerty() {
         removeAllViews()
         showingSymbols = false
@@ -165,21 +169,19 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
             weights = floatArrayOf(0.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 0.5f)
         )
         row(
-            spacer(),
+            textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
             *"zxcvbnm".map { letter(it) }.toTypedArray(),
-            spacer(),
+            textKey("\u232B", "del", function = true),
             height = h,
-            weights = floatArrayOf(1.5f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1.5f)
+            weights = floatArrayOf(2f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 2f)
         )
         row(
-            textKey(if (qwertyCaps) "\u21EA" else "\u21E7", "shift", function = true),
-            textKey("\u4E2D/\u82F1", "lang", function = true),
-            textKey("\u7B26\u53F7", "sym", function = true),
+            textKey("\u4E2D/\u82F1", "lang", function = true, textSizeSp = 15f, singleLine = true),
+            textKey("\u7B26\u53F7", "sym", function = true, textSizeSp = 15f, singleLine = true),
             textKey("\u7A7A\u683C", "space"),
-            textKey("\u232B", "del", function = true),
             textKey("\u56DE\u8F66", "enter", function = true),
             height = h,
-            weights = floatArrayOf(1.5f, 1f, 1f, 3.5f, 1.5f, 1.5f)
+            weights = floatArrayOf(1.5f, 1.5f, 5f, 2f)
         )
     }
 
@@ -237,14 +239,17 @@ class T9KeyboardView(context: Context) : LinearLayout(context) {
         return baseKey(label, digit)
     }
 
-    private fun textKey(label: String, code: String, function: Boolean = false): TextView =
-        baseKey(label, code, function)
+    private fun textKey(label: String, code: String, function: Boolean = false, textSizeSp: Float = 18f, singleLine: Boolean = false): TextView =
+        baseKey(label, code, function, textSizeSp, singleLine)
 
-    private fun baseKey(label: CharSequence, code: String, function: Boolean = false): TextView {
+    private fun baseKey(label: CharSequence, code: String, function: Boolean = false, textSizeSp: Float = 18f, singleLine: Boolean = false): TextView {
         val tv = TextView(context)
         tv.gravity = Gravity.CENTER
         tv.text = label
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp)
+        // Narrow function labels (e.g. lang / symbol on the QWERTY bottom
+        // row) must stay on one line instead of wrapping into two.
+        if (singleLine) tv.maxLines = 1
         tv.setTextColor(context.getColor(R.color.key_text))
         tv.background = keyBackground(context, function)
         tv.isClickable = true

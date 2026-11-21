@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import com.voiceime.R
 
@@ -54,6 +55,12 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         addView(header, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
+        // Tool rows live inside a ScrollView: on phones with a larger font
+        // scale the rows can exceed the fixed panel height, and the bottom
+        // row (offline pack) would otherwise be clipped with no way to
+        // reach it. The header stays fixed at the top.
+        val body = LinearLayout(context).apply { orientation = VERTICAL }
+
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -74,7 +81,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         })
         row.addView(actionButton("+") { changeHeight(2f) },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+        body.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(8f), context.dp(8f), context.dp(4f))
         })
 
@@ -92,7 +99,7 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
         exportRow.addView(exportLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         exportRow.addView(actionButton(context.getString(R.string.settings_export_btn)) { onExportLearned?.invoke() },
             LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        addView(exportRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+        body.addView(exportRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
 
@@ -112,9 +119,15 @@ class SettingsPanelView(context: Context) : LinearLayout(context) {
             marginEnd = context.dp(12f)
         })
         offlineRow.addView(offlineDownloadBtn, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        addView(offlineRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+        body.addView(offlineRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
             setMargins(context.dp(8f), context.dp(4f), context.dp(8f), context.dp(4f))
         })
+        val scroll = ScrollView(context).apply {
+            isVerticalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(body, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
+        addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
     }
 
     fun setHeightDp(dpValue: Float) {
